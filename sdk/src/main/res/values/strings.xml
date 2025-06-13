@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="n_a">N/A</string>
+    <string name="pay_by_transfer">Pay by Transfer</string>
+    <string name="pay_with_card">Pay with Card</string>
+    <string name="account">Account</string>
+    <string name="card">Card</string>
+    <string name="pay_by_transfer_desc">Pay for your order with bank transfer</string>
+    <string name="pay_with_card_desc">Visa, Verve and Mastercard accepted</string>
+</resources>

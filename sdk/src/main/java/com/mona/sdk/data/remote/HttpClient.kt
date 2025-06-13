@@ -1,6 +1,5 @@
 package com.mona.sdk.data.remote
 
-import android.R.attr.host
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.okhttp.OkHttp
@@ -76,10 +75,13 @@ internal val httpClient by lazy {
             }
         }
         defaultRequest {
-            host = "api.development.mona.ng"
+            host = baseUrlHost
             url {
                 protocol = URLProtocol.HTTPS
             }
         }
     }
 }
+
+internal const val baseUrlHost = "api.development.mona.ng"
+internal const val baseUrl = "https://${baseUrlHost}"

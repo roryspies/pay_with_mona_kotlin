@@ -56,6 +56,13 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+    // Coil
+    implementation(libs.coil)
+    implementation(libs.coil.network)
+
+    // Custom Tabs
+    implementation(libs.androidx.browser)
+
     // DataStore
     implementation(libs.datastore)
 

@@ -1,6 +1,7 @@
 [versions]
 agp = "8.10.1"
 kotlin = "2.1.21"
+coil = "3.2.0"
 compose = "2025.06.00"
 coroutines = "1.10.2"
 ktor = "3.1.3"
@@ -9,6 +10,7 @@ ktor = "3.1.3"
 # Android
 desugarjdklibs = "com.android.tools:desugar_jdk_libs:2.1.5"
 # AndroidX
+androidx-browser = "androidx.browser:browser:1.8.0"
 androidx-core = "androidx.core:core-ktx:1.16.0"
 androidx-lifecycle-runtime = "androidx.lifecycle:lifecycle-runtime-ktx:2.9.1"
 androidx-activity-compose = "androidx.activity:activity-compose:1.10.1"
@@ -21,7 +23,8 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 # Coil
-coil = "io.coil-kt.coil3:coil-compose:3.2.0"
+coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 # Datastore
 datastore = "androidx.datastore:datastore-preferences:1.1.7"
 # Kotlin
