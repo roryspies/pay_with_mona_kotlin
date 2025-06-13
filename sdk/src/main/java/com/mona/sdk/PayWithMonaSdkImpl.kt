@@ -112,7 +112,7 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
     ) {
         val merchantKey = getMerchantKey()
         val merchantApiKey = auth.merchantApiKey.first()
-        val paymentOptions = payment.initiatePayment(
+        val response = payment.initiatePayment(
             merchantApiKey = merchantApiKey,
             merchantKey = merchantKey,
             transactionAmountInKobo = transactionAmountInKobo,
@@ -123,17 +123,11 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
             firstName = firstName,
             lastName = lastName
         )
-        state.paymentOptions.update { paymentOptions }
-    }
-
-    internal fun makePayment(method: PaymentMethod, activity: Activity) = scope.launch {
-        val url = payment.buildPaymentUrl(
-            merchantKey = getMerchantKey(),
-            transactionId = "",
-            method = method,
-            type = PaymentType.DirectPaymentWithPossibleAuth
-        )
-        launchUrl(url, activity)
+        state.run {
+            paymentOptions.update { response.savedPaymentOptions }
+            transactionId = response.transactionId
+            friendlyId = response.friendlyId
+        }
     }
 
     @Composable
@@ -149,6 +143,16 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
         )
     }
 
+    internal fun makePayment(method: PaymentMethod, activity: Activity) = scope.launch {
+        val url = payment.buildPaymentUrl(
+            merchantKey = getMerchantKey(),
+            transactionId = state.transactionId.orEmpty(),
+            method = method,
+            type = PaymentType.DirectPaymentWithPossibleAuth
+        )
+        launchUrl(url, activity)
+    }
+
     private suspend fun getMerchantKey(): String {
         return auth.merchantKey.first() ?: throw IllegalStateException(
             "Merchant key is not set. Please initialize the SDK with a valid merchant key."
@@ -157,6 +161,7 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
 
     private fun launchUrl(url: String, activity: Activity) = scope.launch {
         val color = merchantBranding.first()?.colors?.primary ?: SdkColors().primary
+        Timber.e("Launching URL: $url with color: $color")
         bindCustomTabService(activity)
         val intent = CustomTabsIntent
             .Builder(customTabsSession)
@@ -189,7 +194,6 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
             metrics.heightPixels
         }
     }
-
 
     private suspend fun bindCustomTabService(context: Context) {
         // Check for an existing connection

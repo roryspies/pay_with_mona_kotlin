@@ -75,13 +75,10 @@ internal val httpClient by lazy {
             }
         }
         defaultRequest {
-            host = baseUrlHost
+            host = ApiConfig.API_HOST
             url {
                 protocol = URLProtocol.HTTPS
             }
         }
     }
 }
-
-internal const val baseUrlHost = "api.development.mona.ng"
-internal const val baseUrl = "https://${baseUrlHost}"

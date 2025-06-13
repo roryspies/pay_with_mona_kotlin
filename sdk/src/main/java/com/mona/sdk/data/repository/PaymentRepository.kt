@@ -2,8 +2,8 @@ package com.mona.sdk.data.repository
 
 import android.content.Context
 import com.mona.sdk.data.local.DataStore
-import com.mona.sdk.data.model.PaymentOptions
-import com.mona.sdk.data.remote.baseUrl
+import com.mona.sdk.data.remote.ApiConfig.PAY_HOST
+import com.mona.sdk.data.remote.dto.InitiatePaymentResponse
 import com.mona.sdk.data.remote.httpClient
 import com.mona.sdk.domain.PaymentMethod
 import com.mona.sdk.domain.PaymentType
@@ -15,10 +15,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.decodeFromJsonElement
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
@@ -41,7 +37,7 @@ internal class PaymentRepository(
         firstName: String? = null,
         lastName: String? = null,
         userId: String? = null,
-    ): PaymentOptions? {
+    ): InitiatePaymentResponse {
         if (merchantApiKey.isNullOrBlank()) {
             throw IllegalArgumentException("To initiate payment, API key cannot be empty")
         }
@@ -61,11 +57,11 @@ internal class PaymentRepository(
             throw IllegalArgumentException("`DOB` must not be null when `Name Value - First and Last` is provided.")
         }
 
-        val response: JsonObject = httpClient.post("demo/checkout") {
+        val response: InitiatePaymentResponse = httpClient.post("demo/checkout") {
             header("x-public-key", merchantKey)
             header("x-api-key", merchantApiKey)
             if (!userId.isNullOrBlank()) {
-                header("x-user-id", userId)
+                header("x-mona-key-id", userId)
             }
             setBody(
                 buildMap {
@@ -86,12 +82,12 @@ internal class PaymentRepository(
                 }.toJsonObject()
             )
         }.body()
-        val savedPaymentOptions = response["savedPaymentOptions"]
-        if (savedPaymentOptions == null || savedPaymentOptions is JsonNull) {
-            return null
+
+        if (response.transactionId == null || response.friendlyId == null) {
+            throw IllegalStateException("Failed to initiate payment: ${response.message}")
         }
 
-        return Json.decodeFromJsonElement<PaymentOptions>(savedPaymentOptions)
+        return response
     }
 
     fun buildPaymentUrl(
@@ -109,15 +105,15 @@ internal class PaymentRepository(
 
         return when (type) {
             PaymentType.DirectPayment -> {
-                "${baseUrl}/$encodedTransactionId?embedding=true&sdk=true&method=$encodedMethod"
+                "${PAY_HOST}/$encodedTransactionId?embedding=true&sdk=true&method=$encodedMethod"
             }
 
             PaymentType.DirectPaymentWithPossibleAuth -> {
-                "${baseUrl}/$encodedTransactionId?embedding=true&sdk=true&method=$encodedMethod&loginScope=$loginScope&sessionId=$encodedSessionId"
+                "${PAY_HOST}/$encodedTransactionId?embedding=true&sdk=true&method=$encodedMethod&loginScope=$loginScope&sessionId=$encodedSessionId"
             }
 
             PaymentType.Collections -> {
-                "${baseUrl}/collections?loginScope=$loginScope&sessionId=$encodedSessionId"
+                "${PAY_HOST}/collections?loginScope=$loginScope&sessionId=$encodedSessionId"
             }
 
             else -> {
@@ -138,7 +134,7 @@ internal class PaymentRepository(
                         }
                         "&redirect=${
                             URLEncoder.encode(
-                                "$baseUrl/$encodedTransactionId?embedding=true&sdk=true&method=${encodedMethod}&$extra",
+                                "$PAY_HOST/$encodedTransactionId?embedding=true&sdk=true&method=${encodedMethod}&$extra",
                                 utf8
                             )
                         }"
@@ -146,7 +142,7 @@ internal class PaymentRepository(
 
                     else -> ""
                 }
-                "$baseUrl/login?loginScope=$loginScope$redirect&sessionId=$encodedSessionId&transactionId=$encodedTransactionId"
+                "$PAY_HOST/login?loginScope=$loginScope$redirect&sessionId=$encodedSessionId&transactionId=$encodedTransactionId"
             }
         }
     }
