@@ -161,7 +161,6 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
 
     private fun launchUrl(url: String, activity: Activity) = scope.launch {
         val color = merchantBranding.first()?.colors?.primary ?: SdkColors().primary
-        Timber.e("Launching URL: $url with color: $color")
         bindCustomTabService(activity)
         val intent = CustomTabsIntent
             .Builder(customTabsSession)
