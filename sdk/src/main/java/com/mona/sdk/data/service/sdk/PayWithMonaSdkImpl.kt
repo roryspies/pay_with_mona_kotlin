@@ -5,13 +5,13 @@ import android.content.Context
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.google.android.material.snackbar.Snackbar
 import com.mona.sdk.PayWithMonaSdk
 import com.mona.sdk.data.local.SdkStorage
 import com.mona.sdk.data.model.MonaCheckout
+import com.mona.sdk.data.remote.dto.InitiatePaymentResponse
 import com.mona.sdk.data.repository.AuthRepository
 import com.mona.sdk.data.repository.PaymentRepository
 import com.mona.sdk.data.service.sse.FirebaseSseListener
@@ -88,8 +88,13 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
         )
     }
 
-    override val merchantApiKey by lazy {
-        storage.merchantApiKey
+    override val keyId by lazy {
+        storage.keyId
+    }
+
+
+    override val merchantKey by lazy {
+        storage.merchantKey
     }
 
     override val merchantBranding by lazy {
@@ -127,36 +132,26 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
         }
     }
 
-    override suspend fun saveMerchantApiKey(merchantApiKey: String) = storage.setMerchantApiKey(
-        merchantApiKey
-    )
-
-    override suspend fun initiatePayment(data: MonaCheckout) {
-        try {
-            sdkState.update { SdkState.Loading }
-
-            validatePii()
-
-            val response = payment.initiate(data)
-            state.run {
-                paymentOptions.update { response.savedPaymentOptions }
-                transactionId = response.transactionId
-                friendlyId = response.friendlyId
-                checkout = data
-            }
-        } finally {
-            sdkState.update { SdkState.Idle }
-        }
-    }
-
     @Composable
-    override fun PayWithMona(modifier: Modifier) {
+    override fun PayWithMona(
+        payment: InitiatePaymentResponse,
+        checkout: MonaCheckout,
+        modifier: Modifier,
+    ) {
         SdkTheme(
             content = {
-                val options by state.paymentOptions.collectAsState()
                 activity = LocalActivity.current
 
-                PaymentMethods(options, modifier, ::makePayment)
+                LaunchedEffect(payment, checkout) {
+                    state.let {
+                        it.paymentOptions.update { payment.savedPaymentOptions }
+                        it.transactionId = payment.transactionId
+                        it.friendlyId = payment.friendlyId
+                        it.checkout = checkout
+                    }
+                }
+
+                PaymentMethods(payment.savedPaymentOptions, modifier, ::makePayment)
 
                 DisposableEffect(Unit) {
                     // clean up the activity reference when the composable is disposed

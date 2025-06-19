@@ -179,13 +179,13 @@ internal class DataStore(
 
     companion object : SingletonCompanionWithDependency<DataStore, Context>() {
         private val Context.dataStore by preferencesDataStore(
-            name = "pay_with_mona_preferences",
+            name = "mona_sdk_preferences",
         )
 
         // Constants for key alias and separators (if needed, but Base64 simplifies this)
         // The keyAlias refers to the alias of the master key stored in Android Keystore
         // which is used to encrypt/decrypt individual preference values.
-        private const val MASTER_KEY_ALIAS = "finance_sdk_secure_pref_key"
+        private const val MASTER_KEY_ALIAS = "mona_sdk_secure_pref_key"
 
         // Separator for storing IV and encrypted data as a single string
         private const val IV_ENCRYPTED_DATA_SEPARATOR = ":secure_iv_enc:"

@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class Bank(
+data class Bank(
     @SerialName("bankName")
     val name: String = "",
 

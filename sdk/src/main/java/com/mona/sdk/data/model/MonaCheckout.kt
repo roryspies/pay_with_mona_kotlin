@@ -4,7 +4,6 @@ import java.time.LocalDate
 
 data class MonaCheckout(
     val transactionAmountInKobo: Int,
-    val successEventType: SuccessEventType,
     val firstName: String? = null,
     val lastName: String? = null,
     val phoneNumber: String? = null,

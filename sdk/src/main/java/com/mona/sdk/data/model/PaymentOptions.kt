@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class PaymentOptions(
+data class PaymentOptions(
     @SerialName("card")
     val cards: List<Card> = emptyList(),
     @SerialName("bank")

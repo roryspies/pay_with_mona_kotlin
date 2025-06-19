@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class InitiatePaymentResponse(
+data class InitiatePaymentResponse(
     val success: Boolean = false,
     val message: String = "",
     val transactionId: String? = null,

@@ -16,8 +16,6 @@ internal class SdkStorage(
 
     val merchantKey = dataStore.getSecurePreference<String>(MERCHANT_KEY)
 
-    val merchantApiKey = dataStore.getSecurePreference<String>(MERCHANT_API_KEY)
-
     val checkoutId = dataStore.getSecurePreference<String>(MONA_CHECKOUT_ID)
 
     val merchantBranding = dataStore.getPreference(
@@ -53,13 +51,8 @@ internal class SdkStorage(
         dataStore.putSecurePreference(KEY_ID, keyId)
     }
 
-    suspend fun setMerchantApiKey(merchantApiKey: String) {
-        dataStore.putSecurePreference(MERCHANT_API_KEY, merchantApiKey)
-    }
-
     companion object : SingletonCompanionWithDependency<SdkStorage, Context>() {
         private val MERCHANT_KEY = stringPreferencesKey("merchant_key")
-        private val MERCHANT_API_KEY = stringPreferencesKey("merchant_api_key")
         private val MERCHANT_BRANDING = stringPreferencesKey("merchant_branding")
         private val HAS_PASSKEY = stringPreferencesKey("has_passkey")
         private val KEY_ID = stringPreferencesKey("key_id")
