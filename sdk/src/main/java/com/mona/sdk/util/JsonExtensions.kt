@@ -1,12 +1,15 @@
 package com.mona.sdk.util
 
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import java.util.Base64
 
-internal fun Map<String, Any>.toJsonObject(): JsonObject {
+internal fun Map<String, *>.toJsonObject(): JsonObject {
     return JsonObject(
         mapValues { (_, value) ->
             when (value) {
+                null -> JsonNull
                 is String -> JsonPrimitive(value)
                 is Number -> JsonPrimitive(value)
                 is Boolean -> JsonPrimitive(value)
@@ -15,3 +18,5 @@ internal fun Map<String, Any>.toJsonObject(): JsonObject {
         }
     )
 }
+
+internal fun String.base64() = Base64.getEncoder().encodeToString(toByteArray())

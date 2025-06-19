@@ -5,7 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
-import com.mona.sdk.domain.SingletonCompanion
+import com.mona.sdk.domain.SingletonCompanionWithDependency
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -177,7 +177,7 @@ internal class DataStore(
         }
     }
 
-    companion object : SingletonCompanion<DataStore, Context>() {
+    companion object : SingletonCompanionWithDependency<DataStore, Context>() {
         private val Context.dataStore by preferencesDataStore(
             name = "pay_with_mona_preferences",
         )

@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material)
     implementation(libs.androidx.material3)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -55,6 +56,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Biometric
+    implementation(libs.androidx.biometric)
 
     // Coil
     implementation(libs.coil)
@@ -77,6 +81,10 @@ dependencies {
     implementation(libs.ktor.logging)
     implementation(libs.ktor.okhttp)
     implementation(libs.ktor.serialization)
+
+    // Lifecycle
+    implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.process)
 
     // Timber
     implementation(libs.timber)

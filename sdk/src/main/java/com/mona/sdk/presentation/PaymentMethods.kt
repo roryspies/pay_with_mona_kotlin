@@ -56,7 +56,16 @@ internal fun PaymentMethods(
             add(PaymentMethod.PayWithCard)
         }
     }
-    var selectedMethod by remember(methods) { mutableStateOf(methods.first()) }
+    var selectedMethod by remember(methods) {
+        val initial = methods.firstOrNull { method ->
+            when (method) {
+                is PaymentMethod.SavedInfo -> method.bank?.isPrimary == true
+                else -> false
+            }
+        } ?: methods.first()
+        mutableStateOf(initial)
+    }
+
     Column(
         modifier = modifier
             .background(Color.White)
@@ -84,7 +93,35 @@ internal fun PaymentMethods(
             )
             SdkButton(
                 modifier = Modifier.fillMaxWidth(),
-                text = "Proceed to pay",
+                text = when (selectedMethod) {
+                    is PaymentMethod.SavedInfo -> "OneTap"
+                    else -> "Proceed to pay"
+                },
+                additionalContent = when (selectedMethod) {
+                    is PaymentMethod.SavedInfo -> {
+                        {
+                            val method = selectedMethod as PaymentMethod.SavedInfo
+                            Box(
+                                modifier = Modifier.padding(horizontal = 20.dp).size(1.dp, 20.dp)
+                                    .background(Color.White)
+                            )
+                            AsyncImage(
+                                model = (method.bank?.logo ?: method.card?.logo),
+                                contentDescription = method.bank?.name ?: method.card?.bankName,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Text(
+                                modifier = Modifier.padding(start = 4.dp),
+                                text = (method.bank?.accountNumber
+                                    ?: method.card?.accountNumber
+                                    ?: stringResource(R.string.n_a)),
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+
+                    else -> null
+                },
                 onClick = {
                     onProceed(selectedMethod)
                 }

@@ -1,15 +1,15 @@
 package com.mona.sdk.domain
 
-internal abstract class SingletonCompanion<T, D> {
+internal abstract class SingletonCompanion<T> {
 
     @Volatile
     private var instance: T? = null
 
-    fun getInstance(dependency: D): T {
+    operator fun invoke(): T {
         return instance ?: synchronized(this) {
-            instance ?: createInstance(dependency).also { instance = it }
+            instance ?: createInstance().also { instance = it }
         }
     }
 
-    abstract fun createInstance(dependency: D): T
+    abstract fun createInstance(): T
 }

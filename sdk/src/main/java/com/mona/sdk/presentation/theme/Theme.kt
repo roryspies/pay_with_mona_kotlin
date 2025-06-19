@@ -38,11 +38,13 @@ fun SdkTheme(
     val colorScheme = remember(colors) {
         when {
             darkTheme -> darkColorScheme(
-                primary = colors.primary
+                primary = colors.primary,
+                surface = colors.surface.inverted(),
             )
 
             else -> lightColorScheme(
                 primary = colors.primary,
+                surface = colors.surface,
             )
         }
     }

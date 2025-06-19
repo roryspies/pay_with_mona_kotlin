@@ -1,35 +1,98 @@
 package com.mona.sdk.data.repository
 
+import android.app.Activity
 import android.content.Context
-import androidx.datastore.preferences.core.stringPreferencesKey
-import com.mona.sdk.data.local.DataStore
+import androidx.fragment.app.FragmentActivity
+import com.mona.sdk.data.local.SdkStorage
 import com.mona.sdk.data.model.MerchantBranding
 import com.mona.sdk.data.remote.httpClient
-import com.mona.sdk.domain.SingletonCompanion
+import com.mona.sdk.data.service.biometric.BiometricService
+import com.mona.sdk.domain.SingletonCompanionWithDependency
+import com.mona.sdk.util.toJsonObject
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import kotlinx.coroutines.flow.map
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
+import java.util.Base64
+import java.util.UUID
 
-internal class AuthRepository(
-    private val context: Context,
+internal class AuthRepository private constructor(
+    context: Context,
 ) {
-    private val dataStore: DataStore
-        get() = DataStore.getInstance(context)
+    private val storage by lazy {
+        SdkStorage.getInstance(context)
+    }
 
-    val merchantKey = dataStore.getSecurePreference<String>(MERCHANT_KEY)
+    suspend fun login(token: String, phoneNumber: String): JsonObject? {
+        return try {
+            httpClient.post("login") {
+                header("x-strong-auth-token", token)
+                header("x-mona-key-exchange", "true")
+                setBody(
+                    mapOf(
+                        "phoneNumber" to phoneNumber.ifBlank { null }
+                    )
+                )
+            }.body()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to login")
+            null
+        }
+    }
 
-    val merchantApiKey = dataStore.getSecurePreference<String>(MERCHANT_API_KEY)
+    suspend fun signAndCommitKeys(deviceAuth: JsonObject, activity: Activity) {
+        val id = UUID.randomUUID().toString()
+        val attestationResponse = mutableMapOf(
+            "id" to id,
+            "rawId" to id
+        )
+        val payload = mutableMapOf(
+            "registrationToken" to deviceAuth["registrationToken"],
+            "attestationResponse" to attestationResponse
+        )
 
-    val merchantBranding = dataStore.getPreference(
-        key = MERCHANT_BRANDING,
-        defaultValue = null
-    ).map { value ->
-        value?.let { Json.decodeFromString<MerchantBranding>(it) }
+        val publicKey = BiometricService.generatePublicKey()
+        if (publicKey.isBlank()) {
+            throw Exception("Failed to generate public key")
+        }
+        attestationResponse["publicKey"] = publicKey
+
+        // Sign data
+        val registrationOptions = Json.encodeToString(deviceAuth["registrationOptions"])
+        val data = Base64.getEncoder().encodeToString(
+            registrationOptions.toByteArray(Charsets.UTF_8)
+        )
+
+        val signature = BiometricService.createSignature(
+            activity as FragmentActivity,
+            data,
+        )
+        if (signature.isBlank()) {
+            throw Exception("Failed to create signature")
+        }
+        attestationResponse["signature"] = signature
+
+        val response: JsonObject = httpClient.post("keys/commit") {
+            setBody(payload.toJsonObject())
+        }.body() ?: throw Exception("Failed to commit keys")
+
+        if (response["success"] is JsonPrimitive && response["success"]!!.jsonPrimitive.boolean) {
+            storage.setHasPasskey(true)
+            storage.setKeyId(response["keyId"]!!.jsonPrimitive.content)
+            storage.setCheckoutId(response["mona_checkoutId"]!!.jsonPrimitive.content)
+        } else {
+            Timber.e("Failed to commit keys: ${response["error"]}")
+            throw Exception("Failed to commit keys: ${response["error"]}")
+        }
     }
 
     suspend fun fetchMerchantBranding(merchantKey: String): MerchantBranding? {
@@ -37,27 +100,36 @@ internal class AuthRepository(
             val response: JsonObject = httpClient.get("merchant/sdk") {
                 header("x-public-key", merchantKey)
             }.body()
-            Timber.d("Fetched merchant branding: $response")
-            val branding = response["data"] ?: return null
+            val branding = response["data"]?.let {
+                Json.decodeFromJsonElement<MerchantBranding>(it)
+            }
 
-            dataStore.putSecurePreference(MERCHANT_KEY, merchantKey)
-            dataStore.putPreference(MERCHANT_BRANDING, branding.toString())
-            Json.decodeFromJsonElement<MerchantBranding>(branding)
+            storage.setMerchantKey(merchantKey)
+            if (branding != null) {
+                storage.setMerchantBranding(branding)
+            }
+
+            branding
         } catch (e: Exception) {
             Timber.e(e, "Failed to fetch merchant branding")
             null
         }
     }
 
-    suspend fun saveMerchantApiKey(merchantApiKey: String) {
-        dataStore.putSecurePreference(MERCHANT_API_KEY, merchantApiKey)
+
+    suspend fun validatePii(keyId: String): JsonObject? {
+        return try {
+            val response: JsonObject = httpClient.post("login/validate") {
+                header("x-mona-key-id", keyId)
+            }.body()
+            response["data"]?.jsonObject
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to validate PII")
+            null
+        }
     }
 
-    companion object : SingletonCompanion<AuthRepository, Context>() {
-        private val MERCHANT_KEY = stringPreferencesKey("merchant_key")
-        private val MERCHANT_API_KEY = stringPreferencesKey("merchant_api_key")
-        private val MERCHANT_BRANDING = stringPreferencesKey("merchant_branding")
-
+    companion object : SingletonCompanionWithDependency<AuthRepository, Context>() {
         override fun createInstance(dependency: Context) = AuthRepository(dependency)
     }
 }

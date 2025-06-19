@@ -11,9 +11,15 @@ internal sealed interface PaymentMethod {
     data object PayWithCard : PaymentMethod
 }
 
-internal val PaymentMethod.type: String
+internal enum class PaymentMethodType(val key: String) {
+    Card("card"),
+    Bank("bank"),
+    Transfer("transfer")
+}
+
+internal val PaymentMethod.type: PaymentMethodType
     get() = when (this) {
-        is PaymentMethod.SavedInfo -> if (card != null) "card" else "bank"
-        PaymentMethod.PayByTransfer -> "transfer"
-        PaymentMethod.PayWithCard -> "card"
+        is PaymentMethod.SavedInfo -> if (card != null) PaymentMethodType.Card else PaymentMethodType.Bank
+        PaymentMethod.PayByTransfer -> PaymentMethodType.Transfer
+        PaymentMethod.PayWithCard -> PaymentMethodType.Card
     }
