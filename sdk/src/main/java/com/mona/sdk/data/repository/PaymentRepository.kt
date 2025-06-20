@@ -3,9 +3,7 @@ package com.mona.sdk.data.repository
 import android.app.Activity
 import android.content.Context
 import com.mona.sdk.data.local.SdkStorage
-import com.mona.sdk.data.model.MonaCheckout
 import com.mona.sdk.data.remote.ApiConfig.PAY_HOST
-import com.mona.sdk.data.remote.dto.InitiatePaymentResponse
 import com.mona.sdk.data.remote.httpClient
 import com.mona.sdk.data.service.biometric.BiometricService
 import com.mona.sdk.domain.MonaSdkState
@@ -40,72 +38,6 @@ internal class PaymentRepository private constructor(
 ) {
     private val storage by lazy {
         SdkStorage.getInstance(context)
-    }
-
-    suspend fun initiate(data: MonaCheckout): InitiatePaymentResponse {
-        val merchantKey = storage.merchantKey.first()
-        val merchantApiKey = storage.merchantApiKey.first()
-        val keyId = storage.keyId.first()
-
-        val (
-            transactionAmountInKobo,
-            successRateType,
-            firstName,
-            lastName,
-            phoneNumber,
-            bvn,
-            dob,
-        ) = data
-        if (merchantApiKey.isNullOrBlank()) {
-            throw IllegalArgumentException("To initiate payment, API key cannot be empty")
-        }
-        if (transactionAmountInKobo < (20 * 100)) {
-            throw IllegalArgumentException("Cannot initiate payment for less than 20 Naira")
-        }
-
-        val firstAndLastName = if (firstName.isNullOrBlank() || lastName.isNullOrBlank()) {
-            null
-        } else {
-            "$firstName $lastName"
-        }
-        if (dob != null && firstAndLastName.isNullOrBlank()) {
-            throw IllegalArgumentException("`Name Value - First and Last` must not be null or empty when `dob` is provided.")
-        }
-        if (!firstAndLastName.isNullOrBlank() && dob == null) {
-            throw IllegalArgumentException("`DOB` must not be null when `Name Value - First and Last` is provided.")
-        }
-
-        val response: InitiatePaymentResponse = httpClient.post("demo/checkout") {
-            header("x-public-key", merchantKey)
-            header("x-api-key", merchantApiKey)
-            if (!keyId.isNullOrBlank()) {
-                header("x-mona-key-id", keyId)
-            }
-            setBody(
-                buildMap {
-                    put("amount", transactionAmountInKobo)
-                    put("successRateType", successRateType.key)
-                    if (!phoneNumber.isNullOrBlank()) {
-                        put("phone", phoneNumber)
-                    }
-                    if (!bvn.isNullOrBlank()) {
-                        put("bvn", bvn)
-                    }
-                    if (dob != null) {
-                        put("dob", dob.toString())
-                    }
-                    if (!firstAndLastName.isNullOrBlank()) {
-                        put("name", firstAndLastName)
-                    }
-                }.toJsonObject()
-            )
-        }.body()
-
-        if (response.transactionId == null || response.friendlyId == null) {
-            throw IllegalStateException("Failed to initiate payment: ${response.message}")
-        }
-
-        return response
     }
 
     suspend fun makePayment(
