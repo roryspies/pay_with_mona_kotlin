@@ -8,17 +8,18 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.google.android.material.snackbar.Snackbar
-import com.mona.sdk.PayWithMonaSdk
 import com.mona.sdk.data.local.SdkStorage
 import com.mona.sdk.data.model.MonaCheckout
+import com.mona.sdk.data.model.MonaProduct
 import com.mona.sdk.data.remote.dto.InitiatePaymentResponse
 import com.mona.sdk.data.repository.AuthRepository
-import com.mona.sdk.data.repository.PaymentRepository
+import com.mona.sdk.data.repository.CheckoutRepository
 import com.mona.sdk.data.service.sse.FirebaseSseListener
 import com.mona.sdk.data.service.sse.SseListenerType
 import com.mona.sdk.domain.MonaSdkState
 import com.mona.sdk.domain.PaymentMethod
 import com.mona.sdk.domain.PaymentType
+import com.mona.sdk.domain.UrlBuilder
 import com.mona.sdk.event.AuthState
 import com.mona.sdk.event.SdkState
 import com.mona.sdk.event.TransactionState
@@ -41,12 +42,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
 
-internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
-    private var _context: Context? = null
-    private val context: Context
-        get() = _context
-            ?: throw IllegalStateException("PayWithMonaSdk not initialized. Call initialize() first.")
-
+internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     private var activity: Activity? = null
 
     private val scope = MainScope()
@@ -59,8 +55,8 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
         AuthRepository.getInstance(context)
     }
 
-    private val payment by lazy {
-        PaymentRepository.getInstance(context)
+    private val checkout by lazy {
+        CheckoutRepository.getInstance(context)
     }
 
     private val sse = FirebaseSseListener()
@@ -88,29 +84,23 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
         )
     }
 
-    override val keyId by lazy {
-        storage.keyId
-    }
+    val keyId = storage.keyId
 
+    val merchantKey = storage.merchantKey
 
-    override val merchantKey by lazy {
-        storage.merchantKey
-    }
+    val merchantBranding = storage.merchantBranding
 
-    override val merchantBranding by lazy {
-        storage.merchantBranding
-    }
+    val authState = MutableStateFlow(AuthState.LoggedOut)
 
-    override val authState = MutableStateFlow(AuthState.LoggedOut)
+    val sdkState = MutableStateFlow(SdkState.Idle)
 
-    override val sdkState = MutableStateFlow(SdkState.Idle)
+    val transactionState = MutableStateFlow<TransactionState>(TransactionState.Idle)
 
-    override val transactionState = MutableStateFlow<TransactionState>(TransactionState.Idle)
-
-    override fun initialize(merchantKey: String, context: Context) {
+    init {
         scope.launch {
-            _context = context.applicationContext
-            Timber.plant(Timber.DebugTree())
+            if (Timber.forest().isEmpty()) {
+                Timber.plant(Timber.DebugTree())
+            }
 
             // update the auth state based on the current user session
             val keyId = storage.keyId.first()
@@ -133,7 +123,7 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
     }
 
     @Composable
-    override fun PayWithMona(
+    fun PayWithMona(
         payment: InitiatePaymentResponse,
         checkout: MonaCheckout,
         modifier: Modifier,
@@ -190,7 +180,7 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
 
             when (method) {
                 is PaymentMethod.SavedInfo -> {
-                    val response = payment.makePayment(method, activity, state) ?: return@launch
+                    val response = checkout.makePayment(method, activity, state) ?: return@launch
                     state.friendlyId = response["friendlyID"]?.jsonPrimitive?.content
                     sdkState.update { SdkState.TransactionInitiated }
                     transactionState.update {
@@ -203,8 +193,8 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
                 }
 
                 else -> {
-                    val sessionId = payment.generateSessionId()
-                    val url = payment.buildUrl(
+                    val sessionId = checkout.generateSessionId()
+                    val url = UrlBuilder(
                         sessionId = sessionId,
                         merchantKey = getMerchantKey(),
                         transactionId = state.transactionId.orEmpty(),
@@ -232,23 +222,24 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
     private suspend fun initiateKeyExchange(
         method: PaymentMethod? = null,
         withRedirect: Boolean = true,
-        isFromCollections: Boolean = false,
+        product: MonaProduct = MonaProduct.Checkout,
     ) {
-        val sessionId = payment.generateSessionId()
-        val url = payment.buildUrl(
+        val sessionId = checkout.generateSessionId()
+        val url = UrlBuilder(
             sessionId = sessionId,
             merchantKey = getMerchantKey(),
             transactionId = state.transactionId.orEmpty(),
             method = method,
             withRedirect = withRedirect,
-            type = when (isFromCollections) {
-                true -> PaymentType.Collections
-                false -> null
+            type = when (product) {
+                MonaProduct.Collections -> PaymentType.Collections
+                else -> null
             }
         )
         launchUrl(url)
 
         val result = sseListener.subscribeToAuthEvents(sessionId)
+        Timber.e("Key exchange result: $result")
     }
 
     private suspend fun validatePii() {
@@ -283,7 +274,7 @@ internal class PayWithMonaSdkImpl() : PayWithMonaSdk {
 
     private fun performAuth(
         token: String,
-        isFromCollections: Boolean = false
+        product: MonaProduct = MonaProduct.Checkout,
     ) {
         scope.launch {
             authState.update { AuthState.PerformingLogin }

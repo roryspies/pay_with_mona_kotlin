@@ -24,7 +24,7 @@ fun SdkTheme(
         }
 
         else -> {
-            val merchantBranding by PayWithMonaSdk.instance.merchantBranding.collectAsStateWithLifecycle(
+            val merchantBranding by PayWithMonaSdk.merchantBranding.collectAsStateWithLifecycle(
                 null
             )
             remember(merchantBranding) {

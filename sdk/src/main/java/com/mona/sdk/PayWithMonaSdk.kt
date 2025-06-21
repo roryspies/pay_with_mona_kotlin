@@ -1,5 +1,6 @@
 package com.mona.sdk
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,32 +14,42 @@ import com.mona.sdk.event.TransactionState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
-interface PayWithMonaSdk {
+object PayWithMonaSdk {
+    @SuppressLint("StaticFieldLeak")
+    private lateinit var instance: PayWithMonaSdkImpl
 
     val keyId: Flow<String?>
+        get() = instance.keyId
 
     val merchantKey: Flow<String?>
+        get() = instance.merchantKey
 
     val merchantBranding: Flow<MerchantBranding?>
+        get() = instance.merchantBranding
 
     val authState: StateFlow<AuthState>
+        get() = instance.authState
 
     val sdkState: StateFlow<SdkState>
+        get() = instance.sdkState
 
     val transactionState: StateFlow<TransactionState>
+        get() = instance.transactionState
 
-    fun initialize(merchantKey: String, context: Context)
+    fun initialize(merchantKey: String, context: Context) {
+        instance = PayWithMonaSdkImpl(merchantKey, context)
+    }
 
     @Composable
     fun PayWithMona(
         payment: InitiatePaymentResponse,
         checkout: MonaCheckout,
         modifier: Modifier = Modifier,
-    )
-
-    companion object {
-        val instance: PayWithMonaSdk by lazy { PayWithMonaSdkImpl() }
-
-        operator fun invoke(): PayWithMonaSdk = instance
+    ) {
+        instance.PayWithMona(
+            payment,
+            checkout,
+            modifier,
+        )
     }
 }

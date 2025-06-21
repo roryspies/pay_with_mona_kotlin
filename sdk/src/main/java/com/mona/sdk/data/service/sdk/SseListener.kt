@@ -1,22 +1,23 @@
 package com.mona.sdk.data.service.sdk
 
+import com.mona.sdk.data.model.MonaProduct
 import com.mona.sdk.data.service.sse.FirebaseSseListener
 import com.mona.sdk.data.service.sse.SseListenerType
 import com.mona.sdk.domain.MonaSdkState
 import com.mona.sdk.event.SdkState
 import com.mona.sdk.event.TransactionState
+import com.mona.sdk.util.resumeSafely
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
-import kotlin.coroutines.resume
 
 internal class SseListener(
     private val sse: () -> FirebaseSseListener,
     private val state: () -> MonaSdkState,
-    private val performAuth: (String, Boolean) -> Unit,
+    private val performAuth: (String, MonaProduct) -> Unit,
     private val closeCustomTabs: () -> Unit,
     private val updateSdkState: (SdkState) -> Unit,
     private val updateTransactionState: (TransactionState) -> Unit,
@@ -91,20 +92,19 @@ internal class SseListener(
 
     suspend fun subscribeToAuthEvents(
         sessionId: String,
-        isFromCollections: Boolean = false,
+        product: MonaProduct = MonaProduct.Checkout,
     ) = suspendCancellableCoroutine { cont ->
         sse().listenForEvents(
             type = SseListenerType.AuthenticationEvents,
             identifier = sessionId,
             onDataChange = { event ->
                 Timber.i("SSE Auth Event: $event")
-                when {
-                    event.contains("strongAuthToken") -> {
-                        val data = Json.decodeFromString<JsonObject>(event)
-                        val token = data["strongAuthToken"]?.jsonPrimitive?.content
-                        Timber.i("Strong Auth Token: $token")
-                        performAuth(token.orEmpty(), isFromCollections)
-                        cont.resume(token)
+                if (event.contains("strongAuthToken")) {
+                    val data = Json.decodeFromString<JsonObject>(event)
+                    val token = data["strongAuthToken"]?.jsonPrimitive?.content
+                    Timber.i("Strong Auth Token: $token")
+                    performAuth(token.orEmpty(), product)
+                    cont.resumeSafely(token)
 //                            strongAuthToken = JSONObject(event).getString("strongAuthToken")
 //                            authStream.emit(AuthState.PerformingLogin)
 //                            sdkCloseCustomTabs()
@@ -113,17 +113,10 @@ internal class SseListener(
 //                            loginWithStrongAuth(isFromCollections)
 //                            authCompleter.complete(Unit)
 //                            resetPaymentWithPossibleKeyExchange()
-                    }
-
-                    else -> {
-                        cont.resume(null)
-                    }
                 }
             },
             onError = {
                 Timber.e(it, "Error in SSE listener for AuthenticationEvents")
-                cont.resume(null)
-//                cont.resumeWith(Result.failure(it))
             }
         )
     }

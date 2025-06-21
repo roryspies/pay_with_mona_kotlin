@@ -9,6 +9,7 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.mona.sdk.util.resumeSafely
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -16,7 +17,6 @@ import java.security.Signature
 import java.security.spec.ECGenParameterSpec
 import java.util.Base64
 import java.util.concurrent.Executor
-import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 object BiometricService {
@@ -92,7 +92,7 @@ object BiometricService {
                             val signed = crypto?.sign()
                                 ?: throw BiometricException("Signature is null")
                             val base64 = Base64.getEncoder().encodeToString(signed)
-                            cont.resume(base64)
+                            cont.resumeSafely(base64)
                         } catch (e: Exception) {
                             cont.resumeWithException(BiometricException("Signing failed", e))
                         }

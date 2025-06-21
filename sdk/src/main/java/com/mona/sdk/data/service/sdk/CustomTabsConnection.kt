@@ -82,9 +82,7 @@ internal class CustomTabsConnection(context: Context) {
             .setInitialActivityHeightPx((getActivityHeight(activity) * 0.9).roundToInt())
             .setActivitySideSheetMaximizationEnabled(true)
             .setActivitySideSheetDecorationType(CustomTabsIntent.ACTIVITY_SIDE_SHEET_DECORATION_TYPE_SHADOW)
-            .setActivitySideSheetRoundedCornersPosition(
-                CustomTabsIntent.ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_TOP
-            )
+            .setActivitySideSheetRoundedCornersPosition(CustomTabsIntent.ACTIVITY_SIDE_SHEET_ROUNDED_CORNERS_POSITION_TOP)
             .setToolbarCornerRadiusDp(16)
             .setDefaultColorSchemeParams(
                 CustomTabColorSchemeParams.Builder()
