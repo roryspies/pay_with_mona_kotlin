@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,9 +32,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.mona.sdk.R
+import com.mona.sdk.data.model.MonaProduct
 import com.mona.sdk.domain.MonaSdkState
 import com.mona.sdk.domain.PaymentMethod
 import com.mona.sdk.event.TransactionState
+import com.mona.sdk.presentation.bottomsheet.CheckoutCompleteBottomSheetContent
 import com.mona.sdk.presentation.bottomsheet.CheckoutConfirmationBottomSheetContent
 import com.mona.sdk.presentation.bottomsheet.CheckoutInitiatedBottomSheetContent
 import com.mona.sdk.presentation.bottomsheet.KeyExchangeBottomSheetContent
@@ -44,6 +47,7 @@ import com.mona.sdk.util.lighten
 import com.mona.sdk.util.setNavigationBarColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -55,6 +59,7 @@ internal class BottomSheetHandler(
     private val scope: CoroutineScope,
     private val state: () -> MonaSdkState,
     private val transactionState: () -> StateFlow<TransactionState>,
+    private val onComplete: (MonaProduct, Boolean) -> Unit,
 ) {
     private val content = MutableStateFlow<BottomSheetContent?>(null)
     private var dialog: BottomSheetDialog? = null
@@ -113,7 +118,9 @@ internal class BottomSheetHandler(
                 AnimatedContent(
                     modifier = Modifier
                         .padding(vertical = 20.dp, horizontal = 16.dp)
-                        .background(MaterialTheme.colorScheme.background),
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center,
                     targetState = content,
                     content = { current ->
@@ -148,6 +155,29 @@ internal class BottomSheetHandler(
                                     }
                                 )
                             }
+
+                            BottomSheetContent.CheckoutSuccess -> {
+                                val onAction = {
+                                    onComplete(MonaProduct.Checkout, true)
+                                }
+
+                                LaunchedEffect(Unit) {
+                                    delay(2000L)
+                                    onAction()
+                                }
+
+                                CheckoutCompleteBottomSheetContent(
+                                    success = true,
+                                    amount = state().checkout?.transactionAmountInKobo ?: 0,
+                                    onAction = onAction
+                                )
+                            }
+
+                            BottomSheetContent.CheckoutFailure -> CheckoutCompleteBottomSheetContent(
+                                success = false,
+                                amount = state().checkout?.transactionAmountInKobo ?: 0,
+                                onAction = { onComplete(MonaProduct.Checkout, false) }
+                            )
 
                             else -> {
                                 // no-op

@@ -20,6 +20,7 @@ import com.mona.sdk.domain.PaymentMethod
 import com.mona.sdk.presentation.PaymentMethodItem
 import com.mona.sdk.presentation.PaymentMethodItemType
 import com.mona.sdk.presentation.shared.SdkButton
+import com.mona.sdk.presentation.theme.SdkColors
 import com.mona.sdk.presentation.theme.SdkTheme
 import com.mona.sdk.util.format
 
@@ -48,7 +49,7 @@ internal fun CheckoutConfirmationBottomSheetContent(
                     )
                     Text(
                         text = amount.format(),
-                        color = Color(0xFF131503),
+                        color = SdkColors.darkText,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.W700
                     )
@@ -60,7 +61,7 @@ internal fun CheckoutConfirmationBottomSheetContent(
                 text = "Payment Method",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.W600,
-                color = Color(0xFF131503)
+                color = SdkColors.darkText
             )
 
             PaymentMethodItem(

@@ -79,7 +79,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         BottomSheetHandler(
             scope = scope,
             state = { state },
-            transactionState = { transactionState }
+            transactionState = { transactionState },
+            onComplete = ::onComplete
         )
     }
 
@@ -400,6 +401,30 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         }
     }
 
+    private fun onComplete(product: MonaProduct, success: Boolean) {
+        when (product) {
+            MonaProduct.Checkout -> when (success) {
+                true -> {
+                    transactionState.update {
+                        val info = it as? TransactionState.WithInfo
+                        TransactionState.NavToResult(
+                            transactionId = info?.transactionId ?: state.transactionId.orEmpty(),
+                            friendlyId = info?.friendlyId ?: state.friendlyId.orEmpty(),
+                            amount = info?.amount ?: state.checkout?.transactionAmountInKobo ?: 0L,
+                        )
+                    }
+                    resetInternalState()
+                }
+
+                else -> resetInternalState(false)
+            }
+
+            else -> {
+                // no-op
+            }
+        }
+    }
+
     private fun launchUrl(url: String) = scope.launch(Dispatchers.Main) {
         customTabsConnection.launch(
             url,
@@ -431,8 +456,10 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         }
     }
 
-    private fun resetInternalState() {
-        state = MonaSdkState()
+    private fun resetInternalState(resetMonaState: Boolean = true) {
+        if (resetMonaState) {
+            state = MonaSdkState()
+        }
         sdkState.update { SdkState.Idle }
         bottomSheet.dismiss()
         customTabsConnection.close(activity)

@@ -35,6 +35,7 @@ internal fun SdkTheme(
             else -> lightColorScheme(
                 primary = primary,
                 surface = SdkColors.surface,
+                background = SdkColors.white,
             )
         }
     }

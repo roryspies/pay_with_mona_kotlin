@@ -23,12 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mona.sdk.presentation.theme.SdkColors
+import com.mona.sdk.presentation.theme.SdkTheme
 
 @Composable
-fun LoadingBottomSheetContent(
+internal fun LoadingBottomSheetContent(
     modifier: Modifier = Modifier,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "rotation")
@@ -90,4 +92,10 @@ fun LoadingBottomSheetContent(
             )
         }
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun LoadingBottomSheetContentPreview() = SdkTheme {
+    LoadingBottomSheetContent()
 }
