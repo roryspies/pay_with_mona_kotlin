@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,8 +33,12 @@ internal fun SdkButton(
     Button(
         modifier = modifier.heightIn(52.dp),
         onClick = onClick,
+        enabled = !loading,
         shape = RoundedCornerShape(4.dp),
-        colors = ButtonDefaults.buttonColors(contentColor = contentColor),
+        colors = ButtonDefaults.buttonColors(
+            contentColor = contentColor,
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(0.8f)
+        ),
         content = {
             AnimatedContent(
                 targetState = loading,

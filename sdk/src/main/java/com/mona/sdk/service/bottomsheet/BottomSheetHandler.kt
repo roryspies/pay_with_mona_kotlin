@@ -41,6 +41,7 @@ import com.mona.sdk.presentation.bottomsheet.CheckoutConfirmationBottomSheetCont
 import com.mona.sdk.presentation.bottomsheet.CheckoutInitiatedBottomSheetContent
 import com.mona.sdk.presentation.bottomsheet.KeyExchangeBottomSheetContent
 import com.mona.sdk.presentation.bottomsheet.LoadingBottomSheetContent
+import com.mona.sdk.presentation.bottomsheet.OtpInputBottomSheetContent
 import com.mona.sdk.presentation.shared.PoweredByMona
 import com.mona.sdk.presentation.theme.SdkTheme
 import com.mona.sdk.util.lighten
@@ -90,7 +91,7 @@ internal class BottomSheetHandler(
         val content by content.collectAsStateWithLifecycle()
         val background by animateColorAsState(
             targetValue = when (content) {
-                BottomSheetContent.CheckoutConfirmation -> MaterialTheme.colorScheme.background
+                is BottomSheetContent.OtpInput, BottomSheetContent.CheckoutConfirmation -> MaterialTheme.colorScheme.background
                 else -> MaterialTheme.colorScheme.surface
             },
             label = "BottomSheetBackgroundColor"
@@ -106,7 +107,6 @@ internal class BottomSheetHandler(
             content = {
                 Header(
                     showCancelButton = when (content) {
-                        BottomSheetContent.OtpInput,
                         BottomSheetContent.CheckoutInitiated,
                         BottomSheetContent.CollectionSuccess,
                         BottomSheetContent.CheckoutFailure,
@@ -126,6 +126,16 @@ internal class BottomSheetHandler(
                     content = { current ->
                         when (current) {
                             BottomSheetContent.Loading -> LoadingBottomSheetContent()
+
+                            is BottomSheetContent.OtpInput -> OtpInputBottomSheetContent(
+                                title = current.title,
+                                length = current.length,
+                                isPassword = current.isPassword,
+                                onClose = ::dismiss,
+                                onDone = { otp ->
+                                    updateResponse(BottomSheetResponse.Otp(otp))
+                                }
+                            )
 
                             BottomSheetContent.KeyExchange -> KeyExchangeBottomSheetContent {
                                 updateResponse(BottomSheetResponse.CanEnrol)

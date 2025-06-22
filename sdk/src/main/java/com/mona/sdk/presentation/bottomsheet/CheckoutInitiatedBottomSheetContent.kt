@@ -250,7 +250,7 @@ private fun ProgressBar(
         initialValue = -0.3f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200),
+            animation = tween(2800),
             repeatMode = RepeatMode.Restart
         ),
         label = "marquee"

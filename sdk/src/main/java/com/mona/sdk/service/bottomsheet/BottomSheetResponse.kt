@@ -5,5 +5,7 @@ internal sealed interface BottomSheetResponse {
 
     data object Pay : BottomSheetResponse
 
+    data class Otp(val otp: String) : BottomSheetResponse
+
     data object Dismissed : BottomSheetResponse
 }

@@ -160,6 +160,10 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
                     val sdkState by sdkState.collectAsStateWithLifecycle(SdkState.Idle)
 
+                    LaunchedEffect(Unit) {
+                        validatePii()
+                    }
+
                     LaunchedEffect(payment, checkout) {
                         state.let {
                             it.paymentOptions.update { payment.savedPaymentOptions }
@@ -222,7 +226,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
             val pay = suspend {
                 bottomSheet.show(BottomSheetContent.Loading, activity)
-                val response = checkout.makePayment(activity, state)
+                val response = checkout.makePayment(activity, state, bottomSheet)
                 if (response != null) {
                     state.friendlyId = response["friendlyID"]?.jsonPrimitive?.content
                     sdkState.update { SdkState.TransactionInitiated }
@@ -320,32 +324,38 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     }
 
     private suspend fun validatePii() {
-        val keyId = storage.keyId.first() ?: return
+        try {
+            sdkState.update { SdkState.Loading }
 
-        val response = auth.validatePii(keyId) ?: return
+            val keyId = storage.keyId.first() ?: return
 
-        val exists = response["exists"]?.jsonPrimitive?.booleanOrNull ?: false
-        // Non Mona User
-        if (!exists) {
-            return authState.update { AuthState.NotAMonaUser }
-        }
+            val response = auth.validatePii(keyId) ?: return
 
-        // This is a Mona user, update the payment options
-        state.paymentOptions.update {
-            Json.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
-        }
-
-        if (storage.keyId.first().isNullOrBlank()) {
-            authState.update { AuthState.LoggedOut }
-        }
-
-        authState.update {
-            when (storage.keyId.first().isNullOrBlank()) {
-                // User has not done key exchange
-                true -> AuthState.LoggedOut
-                // User has done key exchange
-                false -> AuthState.LoggedIn
+            val exists = response["exists"]?.jsonPrimitive?.booleanOrNull ?: false
+            // Non Mona User
+            if (!exists) {
+                return authState.update { AuthState.NotAMonaUser }
             }
+
+            // This is a Mona user, update the payment options
+            state.paymentOptions.update {
+                Json.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
+            }
+
+            if (storage.keyId.first().isNullOrBlank()) {
+                authState.update { AuthState.LoggedOut }
+            }
+
+            authState.update {
+                when (storage.keyId.first().isNullOrBlank()) {
+                    // User has not done key exchange
+                    true -> AuthState.LoggedOut
+                    // User has done key exchange
+                    false -> AuthState.LoggedIn
+                }
+            }
+        } finally {
+            sdkState.update { SdkState.Idle }
         }
     }
 

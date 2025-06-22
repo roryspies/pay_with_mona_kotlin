@@ -10,12 +10,14 @@ import com.mona.sdk.domain.PaymentMethodType
 import com.mona.sdk.domain.SingletonCompanionWithDependency
 import com.mona.sdk.domain.type
 import com.mona.sdk.service.biometric.BiometricService
+import com.mona.sdk.service.bottomsheet.BottomSheetContent
+import com.mona.sdk.service.bottomsheet.BottomSheetHandler
+import com.mona.sdk.service.bottomsheet.BottomSheetResponse
+import com.mona.sdk.util.CryptoUtil
 import com.mona.sdk.util.base64
-import com.mona.sdk.util.encodeUrl
 import com.mona.sdk.util.toJsonObject
 import io.ktor.client.call.body
 import io.ktor.client.request.cookie
-import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -24,6 +26,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import timber.log.Timber
@@ -38,19 +41,21 @@ internal class CheckoutRepository private constructor(
         SdkStorage.getInstance(context)
     }
 
-    suspend fun getTransaction(
-        transactionId: String,
-    ): JsonObject? = try {
-        httpClient.get("pay?transactionId=${transactionId.encodeUrl()}").body()
-    } catch (e: Exception) {
-        Timber.e(e, "Failed to get transaction details")
-        null
-    }
+//    suspend fun getTransaction(
+//        transactionId: String,
+//    ): JsonObject? = try {
+//        httpClient.get("pay?transactionId=${transactionId.encodeUrl()}").body()
+//    } catch (e: Exception) {
+//        Timber.e(e, "Failed to get transaction details")
+//        null
+//    }
 
     suspend fun makePayment(
         activity: FragmentActivity?,
         state: MonaSdkState,
+        bottomSheetHandler: BottomSheetHandler,
         sign: Boolean = false,
+        extras: Map<String, String> = emptyMap(),
     ): JsonObject? {
         val method = state.method as? PaymentMethod.SavedInfo ?: return null
         val checkoutId = storage.checkoutId.first()
@@ -64,8 +69,7 @@ internal class CheckoutRepository private constructor(
 
                 else -> {
                     put("origin", method.bank?.id)
-// TODO:                    if (_transactionOTP != null) "otp": _transactionOTP,
-// TODO:                   if (_transactionPIN != null) "pin": _transactionPIN,
+                    putAll(extras)
                 }
             }
         }
@@ -134,7 +138,6 @@ internal class CheckoutRepository private constructor(
             }.body()
         } catch (e: Exception) {
             Timber.e(e, "Failed to initiate payment")
-//            MonaSDKNotifier().resetPinAndOTP()
             return null
         }
 
@@ -143,58 +146,54 @@ internal class CheckoutRepository private constructor(
             return response
         }
 
-        val task = response["task"]
-        if (task == null || task !is JsonObject || task.jsonObject.isEmpty()) {
+        val task = when (response["task"]) {
+            is JsonObject -> response["task"]?.jsonObject
+            else -> null
+        }
+        if (task == null || task.isEmpty()) {
             Timber.e("Payment failed with no task information: $response")
             return null
         }
 
-        val taskType = task.jsonObject["taskType"]?.jsonPrimitive?.contentOrNull?.lowercase()
-        val fieldType = task.jsonObject["fieldType"]?.jsonPrimitive?.contentOrNull?.lowercase()
+        val taskType = task["taskType"]?.jsonPrimitive?.contentOrNull?.lowercase()
+        val fieldType = task["fieldType"]?.jsonPrimitive?.contentOrNull?.lowercase()
         return when {
-            taskType == "sign" -> {
-                Timber.i("Payment requires signing, proceeding with signing")
+            taskType == "sign" -> makePayment(
+                activity = activity,
+                state = state,
+                bottomSheetHandler = bottomSheetHandler,
+                sign = true
+            )
+
+            fieldType == "pin" || fieldType == "otp" -> {
+                bottomSheetHandler.show(
+                    BottomSheetContent.OtpInput(
+                        title = task["taskDescription"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                        length = task["fieldLength"]?.jsonPrimitive?.intOrNull ?: 0,
+                        isPassword = fieldType == "pin"
+                    ),
+                    activity
+                )
+                val response = bottomSheetHandler.response.first()
+                if (response !is BottomSheetResponse.Otp) {
+                    Timber.e("Payment task was cancelled or failed: $response")
+                    return null
+                }
+                bottomSheetHandler.show(
+                    BottomSheetContent.Loading,
+                    activity
+                )
                 makePayment(
                     activity = activity,
                     state = state,
-                    sign = true
+                    bottomSheetHandler = bottomSheetHandler,
+                    extras = mapOf(
+                        fieldType to when (task["encrypted"]?.jsonPrimitive?.booleanOrNull) {
+                            true -> CryptoUtil.encrypt(response.otp)
+                            else -> response.otp
+                        }
+                    )
                 )
-            }
-
-            fieldType == "pin" -> {
-//                val pin = monaSDK.triggerPinOrOTPFlow(
-//                    pinOrOtpType = PaymentTaskType.PIN,
-//                    taskModel = TransactionTaskModel.fromJSON(task)
-//                )
-//                if (!pin.isNullOrEmpty()) {
-//                    monaSDK.setTransactionPIN(pin)
-//                    makePayment(
-//                        paymentType = paymentType,
-//                        onPayComplete = onPayComplete
-//                    )
-//                } else {
-//                    log("User cancelled PIN entry")
-//                }
-                null
-            }
-
-
-            fieldType == "otp" -> {
-//                val otp = monaSDK.triggerPinOrOTPFlow(
-//                    pinOrOtpType = PaymentTaskType.OTP,
-//                    taskModel = TransactionTaskModel.fromJSON(task)
-//                )
-//                log("🥰 PaymentService OTP WAS ENTERED ::: $otp")
-//                if (!otp.isNullOrEmpty()) {
-//                    monaSDK.setTransactionOTP(otp)
-//                    makePayment(
-//                        paymentType = paymentType,
-//                        onPayComplete = onPayComplete
-//                    )
-//                } else {
-//                    log("User cancelled OTP entry")
-//                }
-                null
             }
 
             else -> {
