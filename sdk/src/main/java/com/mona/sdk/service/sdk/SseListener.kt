@@ -37,7 +37,7 @@ internal class SseListener(
                     SseListenerType.CustomTabs -> {
                         if (response["success"]?.jsonPrimitive?.booleanOrNull == true) {
                             updateSdkState(SdkState.Idle)
-                            updateTransactionState(TransactionState.NavToResult())
+                            updateTransactionState(TransactionState.NavigateToResult())
                             closeCustomTabs()
                         }
                     }

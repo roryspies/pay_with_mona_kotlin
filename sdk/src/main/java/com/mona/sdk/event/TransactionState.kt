@@ -38,7 +38,7 @@ sealed interface TransactionState {
 //
 //    data class RequestPINTask(val task: TransactionTaskModel) : TransactionState
 
-    data class NavToResult(
+    data class NavigateToResult(
         override val transactionId: String? = null,
         override val friendlyId: String? = null,
         override val amount: Number? = null

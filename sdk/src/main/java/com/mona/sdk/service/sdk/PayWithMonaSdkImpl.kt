@@ -194,7 +194,6 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     suspend fun reset() {
         // Reset the SDK state
         resetInternalState()
-        transactionState.update { TransactionState.Idle }
         authState.update { AuthState.LoggedOut }
 
         // Clear the stored preferences
@@ -407,13 +406,12 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                 true -> {
                     transactionState.update {
                         val info = it as? TransactionState.WithInfo
-                        TransactionState.NavToResult(
+                        TransactionState.NavigateToResult(
                             transactionId = info?.transactionId ?: state.transactionId.orEmpty(),
                             friendlyId = info?.friendlyId ?: state.friendlyId.orEmpty(),
                             amount = info?.amount ?: state.checkout?.transactionAmountInKobo ?: 0L,
                         )
                     }
-                    resetInternalState()
                 }
 
                 else -> resetInternalState(false)
@@ -461,6 +459,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             state = MonaSdkState()
         }
         sdkState.update { SdkState.Idle }
+        transactionState.update { TransactionState.Idle }
         bottomSheet.dismiss()
         customTabsConnection.close(activity)
         sse.stopAllListening()

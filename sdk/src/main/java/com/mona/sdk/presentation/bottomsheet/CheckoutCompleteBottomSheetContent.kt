@@ -80,8 +80,8 @@ internal fun CheckoutCompleteBottomSheetContent(
 
             Text(
                 text = when (success) {
-                    true -> "Your payment of ₦${amount.format()} was successful. Mona has sent you a transaction receipt!"
-                    false -> "Your payment of ₦${amount.format()} failed!. Please try again or use a different payment method."
+                    true -> "Your payment of ${amount.format()} was successful. Mona has sent you a transaction receipt!"
+                    false -> "Your payment of ${amount.format()} failed!. Please try again or use a different payment method."
                 },
                 textAlign = TextAlign.Center,
                 fontSize = 14.sp,
