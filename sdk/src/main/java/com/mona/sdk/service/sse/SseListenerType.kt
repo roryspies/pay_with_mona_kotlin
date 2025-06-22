@@ -1,4 +1,4 @@
-package com.mona.sdk.data.service.sse
+package com.mona.sdk.service.sse
 
 /**
  * Enum to represent different types of SSE listeners

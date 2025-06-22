@@ -1,8 +1,8 @@
 package com.mona.sdk.presentation.shared
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.sp
 import com.mona.sdk.R
 
 @Composable
-internal fun SecuredByMona(
+internal fun PoweredByMona(
     modifier: Modifier = Modifier,
     title: String? = null
 ) {
@@ -24,11 +24,11 @@ internal fun SecuredByMona(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         content = {
             Text(
-                text = title ?: "Secured by",
+                text = title ?: "Powered by",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.W500,
             )
-            Icon(
+            Image(
                 painter = painterResource(R.drawable.ic_logo_full),
                 contentDescription = null
             )

@@ -1,0 +1,9 @@
+package com.mona.sdk.service.bottomsheet
+
+internal sealed interface BottomSheetResponse {
+    data object CanEnrol : BottomSheetResponse
+
+    data object Pay : BottomSheetResponse
+
+    data object Dismissed : BottomSheetResponse
+}

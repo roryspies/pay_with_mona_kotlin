@@ -1,15 +1,15 @@
 package com.mona.sdk.data.repository
 
-import android.app.Activity
 import android.content.Context
+import androidx.fragment.app.FragmentActivity
 import com.mona.sdk.data.local.SdkStorage
 import com.mona.sdk.data.remote.httpClient
-import com.mona.sdk.data.service.biometric.BiometricService
 import com.mona.sdk.domain.MonaSdkState
 import com.mona.sdk.domain.PaymentMethod
 import com.mona.sdk.domain.PaymentMethodType
 import com.mona.sdk.domain.SingletonCompanionWithDependency
 import com.mona.sdk.domain.type
+import com.mona.sdk.service.biometric.BiometricService
 import com.mona.sdk.util.base64
 import com.mona.sdk.util.encodeUrl
 import com.mona.sdk.util.toJsonObject
@@ -48,11 +48,11 @@ internal class CheckoutRepository private constructor(
     }
 
     suspend fun makePayment(
-        method: PaymentMethod.SavedInfo,
-        activity: Activity?,
+        activity: FragmentActivity?,
         state: MonaSdkState,
         sign: Boolean = false,
     ): JsonObject? {
+        val method = state.method as? PaymentMethod.SavedInfo ?: return null
         val checkoutId = storage.checkoutId.first()
         val payload = buildMap {
             put("hasDeviceKey", !checkoutId.isNullOrBlank())
@@ -63,7 +63,7 @@ internal class CheckoutRepository private constructor(
                 }
 
                 else -> {
-                    put("bankId", method.bank?.id)
+                    put("origin", method.bank?.id)
 // TODO:                    if (_transactionOTP != null) "otp": _transactionOTP,
 // TODO:                   if (_transactionPIN != null) "pin": _transactionPIN,
                 }
@@ -81,7 +81,7 @@ internal class CheckoutRepository private constructor(
                     "method" to "POST".base64(),
                     "uri" to "/pay".base64(),
                     "body" to Json.encodeToString(payload.toJsonObject()).base64(),
-                    "params" to Json.encodeToString(emptyMap<String, Any>()).base64(),
+                    "params" to Json.encodeToString(emptyMap<String, String>()).base64(),
                     "nonce" to nonce.base64(),
                     "timestamp" to timestamp.base64(),
                     "keyId" to keyId.base64()
@@ -155,7 +155,6 @@ internal class CheckoutRepository private constructor(
             taskType == "sign" -> {
                 Timber.i("Payment requires signing, proceeding with signing")
                 makePayment(
-                    method = method,
                     activity = activity,
                     state = state,
                     sign = true

@@ -1,6 +1,5 @@
-package com.mona.sdk.data.service.biometric
+package com.mona.sdk.service.biometric
 
-import android.app.Activity
 import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
@@ -10,7 +9,9 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.mona.sdk.util.resumeSafely
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.Signature
@@ -50,13 +51,13 @@ object BiometricService {
 
 
     suspend fun createSignature(
-        activity: Activity,
+        activity: FragmentActivity,
         data: String,
         config: BiometricPromptConfig = BiometricPromptConfig(
             title = "Sign Transaction",
             subtitle = "Use your biometric to authorize this transaction"
         )
-    ): String {
+    ): String = withContext(Dispatchers.Main) {
         val model = Build.MODEL
         if (unsupportedModels.contains(model)) {
             throw BiometricException("Fallback not implemented for this model")
@@ -77,11 +78,7 @@ object BiometricService {
             .setNegativeButtonText(config.cancelButtonText)
             .build()
 
-        if (activity !is FragmentActivity) {
-            throw IllegalArgumentException("Activity must be a FragmentActivity")
-        }
-
-        return suspendCancellableCoroutine { cont ->
+        suspendCancellableCoroutine { cont ->
             val biometricPrompt = BiometricPrompt(
                 activity,
                 executor,
@@ -111,7 +108,7 @@ object BiometricService {
         }
     }
 
-    suspend fun signTransaction(activity: Activity, hashedTransaction: String) = try {
+    suspend fun signTransaction(activity: FragmentActivity, hashedTransaction: String) = try {
         createSignature(activity, hashedTransaction)
     } catch (_: BiometricException) {
         null

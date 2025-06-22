@@ -1,6 +1,9 @@
-package com.mona.sdk.domain
+package com.mona.sdk.service.sdk
 
-import com.mona.sdk.data.remote.ApiConfig.PAY_HOST
+import com.mona.sdk.data.remote.ApiConfig
+import com.mona.sdk.domain.PaymentMethod
+import com.mona.sdk.domain.PaymentType
+import com.mona.sdk.domain.type
 import com.mona.sdk.util.encodeUrl
 
 internal object UrlBuilder {
@@ -12,22 +15,21 @@ internal object UrlBuilder {
         type: PaymentType? = null,
         withRedirect: Boolean = true,
     ): String {
-        val loginScope = merchantKey.encodeUrl()
-        val encodedSessionId = sessionId.encodeUrl()
         val encodedTransactionId = transactionId.encodeUrl()
-        val encodedMethod = method?.type?.key?.encodeUrl().orEmpty()
+        val embedding = "embedding=true&sdk=true&method=${method?.type?.key?.encodeUrl().orEmpty()}"
+        val scope = "loginScope=${merchantKey.encodeUrl()}&sessionId=${sessionId.encodeUrl()}"
 
         return when (type) {
             PaymentType.DirectPayment -> {
-                "${PAY_HOST}/$encodedTransactionId?embedding=true&sdk=true&method=$encodedMethod"
+                "${ApiConfig.PAY_HOST}/$encodedTransactionId?$embedding"
             }
 
             PaymentType.DirectPaymentWithPossibleAuth -> {
-                "${PAY_HOST}/$encodedTransactionId?embedding=true&sdk=true&method=$encodedMethod&loginScope=$loginScope&sessionId=$encodedSessionId"
+                "${ApiConfig.PAY_HOST}/$encodedTransactionId?$embedding&$scope"
             }
 
             PaymentType.Collections -> {
-                "${PAY_HOST}/collections?loginScope=$loginScope&sessionId=$encodedSessionId"
+                "${ApiConfig.PAY_HOST}/collections?$scope"
             }
 
             else -> {
@@ -43,12 +45,12 @@ internal object UrlBuilder {
                                 }"
                             }
                         }
-                        "&redirect=${"$PAY_HOST/$encodedTransactionId?embedding=true&sdk=true&method=${encodedMethod}&$extra".encodeUrl()}"
+                        "&redirect=${"${ApiConfig.PAY_HOST}/$encodedTransactionId?$embedding&$scope&$extra".encodeUrl()}"
                     }
 
                     else -> ""
                 }
-                "$PAY_HOST/login?loginScope=$loginScope$redirect&sessionId=$encodedSessionId&transactionId=$encodedTransactionId"
+                "${ApiConfig.PAY_HOST}/login?$scope&transactionId=$encodedTransactionId$redirect"
             }
         }
     }

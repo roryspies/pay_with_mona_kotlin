@@ -7,17 +7,19 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 
-internal fun Map<String, *>.toJsonObject(): JsonObject {
+internal fun Map<*, *>.toJsonObject(): JsonObject {
     return JsonObject(
-        mapValues { (_, value) ->
-            when (value) {
+        map { (key, value) ->
+            key.toString() to when (value) {
                 null -> JsonNull
                 is String -> JsonPrimitive(value)
                 is Number -> JsonPrimitive(value)
                 is Boolean -> JsonPrimitive(value)
+                is Map<*, *> -> value.toJsonObject()
+                is JsonPrimitive -> value
                 else -> throw IllegalArgumentException("Unsupported type: ${value::class.java}")
             }
-        }
+        }.toMap()
     )
 }
 

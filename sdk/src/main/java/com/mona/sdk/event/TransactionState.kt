@@ -12,7 +12,13 @@ sealed interface TransactionState {
     data class Initiated(
         override val transactionId: String? = null,
         override val friendlyId: String? = null,
-        override val amount: Number? = null
+        override val amount: Number? = null,
+    ) : WithInfo(transactionId, friendlyId, amount)
+
+    data class ProgressUpdate(
+        override val transactionId: String? = null,
+        override val friendlyId: String? = null,
+        override val amount: Number? = null,
     ) : WithInfo(transactionId, friendlyId, amount)
 
     data class Completed(

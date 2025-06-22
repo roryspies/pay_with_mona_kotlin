@@ -6,8 +6,8 @@ import androidx.fragment.app.FragmentActivity
 import com.mona.sdk.data.local.SdkStorage
 import com.mona.sdk.data.model.MerchantBranding
 import com.mona.sdk.data.remote.httpClient
-import com.mona.sdk.data.service.biometric.BiometricService
 import com.mona.sdk.domain.SingletonCompanionWithDependency
+import com.mona.sdk.service.biometric.BiometricService
 import com.mona.sdk.util.toJsonObject
 import io.ktor.client.call.body
 import io.ktor.client.request.get
@@ -33,20 +33,16 @@ internal class AuthRepository private constructor(
     }
 
     suspend fun login(token: String, phoneNumber: String): JsonObject? {
-        return try {
-            httpClient.post("login") {
-                header("x-strong-auth-token", token)
-                header("x-mona-key-exchange", "true")
-                setBody(
-                    mapOf(
-                        "phoneNumber" to phoneNumber.ifBlank { null }
-                    )
+        return httpClient.post("login") {
+            header("x-strong-auth-token", token)
+            header("x-mona-key-exchange", "true")
+            setBody(
+                mapOf(
+//                    "phone" to phoneNumber.ifBlank { null }
+                    "phone" to null
                 )
-            }.body()
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to login")
-            null
-        }
+            )
+        }.body()
     }
 
     suspend fun signAndCommitKeys(deviceAuth: JsonObject, activity: Activity) {
@@ -90,7 +86,6 @@ internal class AuthRepository private constructor(
             storage.setKeyId(response["keyId"]!!.jsonPrimitive.content)
             storage.setCheckoutId(response["mona_checkoutId"]!!.jsonPrimitive.content)
         } else {
-            Timber.e("Failed to commit keys: ${response["error"]}")
             throw Exception("Failed to commit keys: ${response["error"]}")
         }
     }

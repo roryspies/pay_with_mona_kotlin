@@ -1,4 +1,4 @@
-package com.mona.sdk.data.service.biometric
+package com.mona.sdk.service.biometric
 
 class BiometricException(
     override val message: String,

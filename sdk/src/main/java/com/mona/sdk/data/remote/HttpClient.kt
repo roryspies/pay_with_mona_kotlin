@@ -21,7 +21,7 @@ import timber.log.Timber
 
 internal fun getDefaultHttpClient(
     timeoutMillis: Long = 60_000,
-    expectSuccess: Boolean = false,
+    expectSuccess: Boolean = true,
     modify: (HttpClientConfig<OkHttpConfig>.() -> Unit)? = null
 ) = HttpClient(OkHttp) {
     this.expectSuccess = expectSuccess

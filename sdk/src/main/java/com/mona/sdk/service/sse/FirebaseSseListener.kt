@@ -1,4 +1,4 @@
-package com.mona.sdk.data.service.sse
+package com.mona.sdk.service.sse
 
 import com.mona.sdk.data.remote.ApiConfig.FIREBASE_DB_URL
 import com.mona.sdk.domain.SingletonCompanion

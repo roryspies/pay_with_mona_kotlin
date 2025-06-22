@@ -1,12 +1,14 @@
-package com.mona.sdk.data.service.sdk
+package com.mona.sdk.service.sdk
 
 import com.mona.sdk.data.model.MonaProduct
-import com.mona.sdk.data.service.sse.FirebaseSseListener
-import com.mona.sdk.data.service.sse.SseListenerType
 import com.mona.sdk.domain.MonaSdkState
 import com.mona.sdk.event.SdkState
 import com.mona.sdk.event.TransactionState
+import com.mona.sdk.service.sse.FirebaseSseListener
+import com.mona.sdk.service.sse.SseListenerType
 import com.mona.sdk.util.resumeSafely
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -17,7 +19,7 @@ import timber.log.Timber
 internal class SseListener(
     private val sse: () -> FirebaseSseListener,
     private val state: () -> MonaSdkState,
-    private val performAuth: (String, MonaProduct) -> Unit,
+    private val performAuth: suspend (String, MonaProduct) -> Unit,
     private val closeCustomTabs: () -> Unit,
     private val updateSdkState: (SdkState) -> Unit,
     private val updateTransactionState: (TransactionState) -> Unit,
@@ -43,12 +45,22 @@ internal class SseListener(
                     SseListenerType.PaymentUpdates, SseListenerType.TransactionMessages -> {
                         val state = state()
                         when (response["event"]?.jsonPrimitive?.content) {
-                            "transaction_initiated", "progress_update" -> {
+                            "transaction_initiated" -> {
                                 updateTransactionState(
                                     TransactionState.Initiated(
                                         friendlyId = state.friendlyId,
                                         transactionId = state.transactionId,
-                                        amount = state.checkout?.transactionAmountInKobo
+                                        amount = state.checkout?.transactionAmountInKobo,
+                                    )
+                                )
+                            }
+
+                            "progress_update" -> {
+                                updateTransactionState(
+                                    TransactionState.ProgressUpdate(
+                                        friendlyId = state.friendlyId,
+                                        transactionId = state.transactionId,
+                                        amount = state.checkout?.transactionAmountInKobo,
                                     )
                                 )
                             }
@@ -65,7 +77,7 @@ internal class SseListener(
                             }
 
                             "transaction_completed" -> {
-                                Timber.i("Transaction completed received: $response")
+                                Timber.e("Transaction completed received: $response")
                                 updateTransactionState(
                                     TransactionState.Completed(
                                         friendlyId = state.friendlyId,
@@ -75,7 +87,6 @@ internal class SseListener(
                                 )
                             }
                         }
-                        updateSdkState(SdkState.Idle)
                     }
 
                     else -> {
@@ -98,21 +109,14 @@ internal class SseListener(
             type = SseListenerType.AuthenticationEvents,
             identifier = sessionId,
             onDataChange = { event ->
-                Timber.i("SSE Auth Event: $event")
                 if (event.contains("strongAuthToken")) {
                     val data = Json.decodeFromString<JsonObject>(event)
                     val token = data["strongAuthToken"]?.jsonPrimitive?.content
-                    Timber.i("Strong Auth Token: $token")
-                    performAuth(token.orEmpty(), product)
-                    cont.resumeSafely(token)
-//                            strongAuthToken = JSONObject(event).getString("strongAuthToken")
-//                            authStream.emit(AuthState.PerformingLogin)
-//                            sdkCloseCustomTabs()
-//                            sdkStateStream.emit(MonaSDKState.Loading)
-//
-//                            loginWithStrongAuth(isFromCollections)
-//                            authCompleter.complete(Unit)
-//                            resetPaymentWithPossibleKeyExchange()
+
+                    CoroutineScope(cont.context).launch {
+                        performAuth(token.orEmpty(), product)
+                        cont.resumeSafely(token)
+                    }
                 }
             },
             onError = {

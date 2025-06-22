@@ -1,4 +1,4 @@
-package com.mona.sdk.data.service.sse
+package com.mona.sdk.service.sse
 
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner

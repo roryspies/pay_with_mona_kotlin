@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,17 +28,22 @@ internal fun SdkButton(
     onClick: () -> Unit = {},
     additionalContent: @Composable (RowScope.() -> Unit)? = null,
 ) {
+    val contentColor = Color(0xFFF4FCF5)
     Button(
         modifier = modifier.heightIn(52.dp),
         onClick = onClick,
         shape = RoundedCornerShape(4.dp),
-        colors = ButtonDefaults.buttonColors(contentColor = Color(0xFFF4FCF5)),
+        colors = ButtonDefaults.buttonColors(contentColor = contentColor),
         content = {
             AnimatedContent(
                 targetState = loading,
                 content = { state ->
                     when (state) {
-                        true -> CircularProgressIndicator()
+                        true -> CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = contentColor
+                        )
+
                         else -> AnimatedContent(
                             targetState = additionalContent != null,
                             content = { hasContent ->

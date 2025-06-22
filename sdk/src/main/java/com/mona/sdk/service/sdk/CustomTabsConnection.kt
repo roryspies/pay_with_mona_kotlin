@@ -1,5 +1,6 @@
-package com.mona.sdk.data.service.sdk
+package com.mona.sdk.service.sdk
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
 import android.content.ActivityNotFoundException
@@ -73,6 +74,7 @@ internal class CustomTabsConnection(context: Context) {
         }
     }
 
+    @SuppressLint("WrongConstant")
     suspend fun launch(url: String, activity: Activity, color: Color) {
         bind(activity)
         CustomTabsIntent

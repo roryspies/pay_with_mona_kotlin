@@ -2,49 +2,39 @@ package com.mona.sdk.presentation.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.mona.sdk.PayWithMonaSdk
+import com.mona.sdk.PayWithMonaSdk.initialize
+import com.mona.sdk.PayWithMonaSdk.merchantBranding
 
 @Composable
-fun SdkTheme(
+internal fun SdkTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colors = when {
-        LocalInspectionMode.current -> {
-            // In inspection mode, we don't want to collect the merchant branding
-            // as it may not be available in the preview.
-            SdkColors()
-        }
-
-        else -> {
-            val merchantBranding by PayWithMonaSdk.merchantBranding.collectAsStateWithLifecycle(
-                null
-            )
-            remember(merchantBranding) {
-                merchantBranding?.let {
-                    SdkColors(primary = it.colors.primary, text = it.colors.text)
-                } ?: SdkColors()
-            }
-        }
+    // if inspection mode is enabled, we just initialize the sdk with a dummy value
+    if (LocalInspectionMode.current) {
+        initialize("merchant_key", LocalContext.current)
     }
+    val merchantBranding by merchantBranding.collectAsStateWithLifecycle()
 
-    val colorScheme = remember(colors) {
+    val primary = merchantBranding?.colors?.primary ?: SdkColors.primary
+
+    val colorScheme = remember(primary) {
         when {
-            darkTheme -> darkColorScheme(
-                primary = colors.primary,
-                surface = colors.surface.inverted(),
-            )
+//            darkTheme -> darkColorScheme(
+//                primary = colors.primary,
+//                surface = colors.surface.inverted(),
+//            )
 
             else -> lightColorScheme(
-                primary = colors.primary,
-                surface = colors.surface,
+                primary = primary,
+                surface = SdkColors.surface,
             )
         }
     }

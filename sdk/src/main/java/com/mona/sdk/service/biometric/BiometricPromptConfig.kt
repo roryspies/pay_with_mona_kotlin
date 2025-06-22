@@ -1,4 +1,4 @@
-package com.mona.sdk.data.service.biometric
+package com.mona.sdk.service.biometric
 
 data class BiometricPromptConfig(
     val title: String = "Biometric Authentication",

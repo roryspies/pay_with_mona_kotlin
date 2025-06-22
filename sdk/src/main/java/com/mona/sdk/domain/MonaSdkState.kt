@@ -9,4 +9,5 @@ internal class MonaSdkState {
     var transactionId: String? = null
     var friendlyId: String? = null
     var checkout: MonaCheckout? = null
+    var method: PaymentMethod? = null
 }

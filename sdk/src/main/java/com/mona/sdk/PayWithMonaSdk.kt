@@ -7,16 +7,16 @@ import androidx.compose.ui.Modifier
 import com.mona.sdk.data.model.MerchantBranding
 import com.mona.sdk.data.model.MonaCheckout
 import com.mona.sdk.data.remote.dto.InitiatePaymentResponse
-import com.mona.sdk.data.service.sdk.PayWithMonaSdkImpl
 import com.mona.sdk.event.AuthState
 import com.mona.sdk.event.SdkState
 import com.mona.sdk.event.TransactionState
+import com.mona.sdk.service.sdk.PayWithMonaSdkImpl
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 object PayWithMonaSdk {
     @SuppressLint("StaticFieldLeak")
-    private lateinit var instance: PayWithMonaSdkImpl
+    internal lateinit var instance: PayWithMonaSdkImpl
 
     val keyId: Flow<String?>
         get() = instance.keyId
@@ -24,7 +24,7 @@ object PayWithMonaSdk {
     val merchantKey: Flow<String?>
         get() = instance.merchantKey
 
-    val merchantBranding: Flow<MerchantBranding?>
+    val merchantBranding: StateFlow<MerchantBranding?>
         get() = instance.merchantBranding
 
     val authState: StateFlow<AuthState>
