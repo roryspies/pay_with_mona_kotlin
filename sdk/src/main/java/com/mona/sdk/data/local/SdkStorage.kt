@@ -10,45 +10,51 @@ import kotlinx.serialization.json.Json
 internal class SdkStorage(
     context: Context,
 ) {
-    private val dataStore by lazy {
+    private val store by lazy {
         DataStore.getInstance(context)
     }
 
-    val merchantKey = dataStore.getSecurePreference<String>(MERCHANT_KEY)
+    val merchantKey = store.getSecurePreference<String>(MERCHANT_KEY)
 
-    val checkoutId = dataStore.getSecurePreference<String>(MONA_CHECKOUT_ID)
+    val checkoutId = store.getSecurePreference<String>(MONA_CHECKOUT_ID)
 
-    val merchantBranding = dataStore.getPreference(
+    val merchantBranding = store.getPreference(
         key = MERCHANT_BRANDING,
         defaultValue = null
     ).map { value ->
         value?.let { Json.decodeFromString<MerchantBranding>(it) }
     }
 
-    val hasPasskey = dataStore.getSecurePreference<String>(HAS_PASSKEY).map {
+    val hasPasskey = store.getSecurePreference<String>(HAS_PASSKEY).map {
         it?.toBoolean() ?: false
     }
 
-    val keyId = dataStore.getSecurePreference<String>(KEY_ID)
+    val keyId = store.getSecurePreference<String>(KEY_ID)
 
     suspend fun setMerchantKey(merchantKey: String) {
-        dataStore.putSecurePreference(MERCHANT_KEY, merchantKey)
+        store.putSecurePreference(MERCHANT_KEY, merchantKey)
     }
 
     suspend fun setCheckoutId(checkoutId: String) {
-        dataStore.putSecurePreference(MONA_CHECKOUT_ID, checkoutId)
+        store.putSecurePreference(MONA_CHECKOUT_ID, checkoutId)
     }
 
     suspend fun setMerchantBranding(branding: MerchantBranding) {
-        dataStore.putPreference(MERCHANT_BRANDING, Json.encodeToString(branding))
+        store.putPreference(MERCHANT_BRANDING, Json.encodeToString(branding))
     }
 
     suspend fun setHasPasskey(hasPasskey: Boolean) {
-        dataStore.putSecurePreference(HAS_PASSKEY, hasPasskey.toString())
+        store.putSecurePreference(HAS_PASSKEY, hasPasskey.toString())
     }
 
     suspend fun setKeyId(keyId: String) {
-        dataStore.putSecurePreference(KEY_ID, keyId)
+        store.putSecurePreference(KEY_ID, keyId)
+    }
+
+    suspend fun clear() {
+        store.removePreference(MONA_CHECKOUT_ID)
+        store.removePreference(KEY_ID)
+        store.removePreference(HAS_PASSKEY)
     }
 
     companion object : SingletonCompanionWithDependency<SdkStorage, Context>() {

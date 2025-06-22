@@ -69,7 +69,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     private val sse = FirebaseSseListener()
 
-    private val state = MonaSdkState()
+    private var state = MonaSdkState()
 
     private val customTabsConnection by lazy {
         CustomTabsConnection(context)
@@ -178,7 +178,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     DisposableEffect(Unit) {
                         onDispose {
                             activity = null
-                            sse.stopAllListening()
+                            resetInternalState()
                         }
                     }
                 }
@@ -190,7 +190,17 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         }
     )
 
-    internal fun makePayment(method: PaymentMethod) = scope.launch {
+    suspend fun reset() {
+        // Reset the SDK state
+        resetInternalState()
+        transactionState.update { TransactionState.Idle }
+        authState.update { AuthState.LoggedOut }
+
+        // Clear the stored preferences
+        storage.clear()
+    }
+
+    private fun makePayment(method: PaymentMethod) = scope.launch {
         try {
             sdkState.update { SdkState.Loading }
 
@@ -419,5 +429,13 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             }
             sdkState.update { state }
         }
+    }
+
+    private fun resetInternalState() {
+        state = MonaSdkState()
+        sdkState.update { SdkState.Idle }
+        bottomSheet.dismiss()
+        customTabsConnection.close(activity)
+        sse.stopAllListening()
     }
 }

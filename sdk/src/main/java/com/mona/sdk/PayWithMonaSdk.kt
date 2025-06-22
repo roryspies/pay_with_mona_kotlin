@@ -52,4 +52,8 @@ object PayWithMonaSdk {
             modifier,
         )
     }
+
+    suspend fun reset() {
+        instance.reset()
+    }
 }
