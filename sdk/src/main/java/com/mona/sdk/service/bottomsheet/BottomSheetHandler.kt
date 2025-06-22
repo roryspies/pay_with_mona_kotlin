@@ -37,6 +37,7 @@ import com.mona.sdk.event.TransactionState
 import com.mona.sdk.presentation.bottomsheet.CheckoutConfirmationBottomSheetContent
 import com.mona.sdk.presentation.bottomsheet.CheckoutInitiatedBottomSheetContent
 import com.mona.sdk.presentation.bottomsheet.KeyExchangeBottomSheetContent
+import com.mona.sdk.presentation.bottomsheet.LoadingBottomSheetContent
 import com.mona.sdk.presentation.shared.PoweredByMona
 import com.mona.sdk.presentation.theme.SdkTheme
 import com.mona.sdk.util.lighten
@@ -117,6 +118,8 @@ internal class BottomSheetHandler(
                     targetState = content,
                     content = { current ->
                         when (current) {
+                            BottomSheetContent.Loading -> LoadingBottomSheetContent()
+
                             BottomSheetContent.KeyExchange -> KeyExchangeBottomSheetContent {
                                 updateResponse(BottomSheetResponse.CanEnrol)
                             }

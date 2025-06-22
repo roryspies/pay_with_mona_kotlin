@@ -50,7 +50,8 @@ import kotlin.math.roundToInt
 @Composable
 internal fun CheckoutInitiatedBottomSheetContent(
     state: TransactionState,
-    onDone: () -> Unit = {}
+    modifier: Modifier = Modifier,
+    onDone: () -> Unit,
 ) {
     val currentStep = remember(state) {
         when (state) {
@@ -89,7 +90,7 @@ internal fun CheckoutInitiatedBottomSheetContent(
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         content = {
             Text(
