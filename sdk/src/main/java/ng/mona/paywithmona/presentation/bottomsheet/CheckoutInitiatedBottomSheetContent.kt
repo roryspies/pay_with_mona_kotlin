@@ -32,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -246,14 +245,14 @@ private fun ProgressBar(
     state: StepState
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "progress")
-    val marqueePosition = infiniteTransition.animateFloat(
-        initialValue = -0.3f,
-        targetValue = 1f,
+    val shimmerPosition = infiniteTransition.animateFloat(
+        initialValue = -1f,
+        targetValue = 2f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2800),
+            animation = tween(1500),
             repeatMode = RepeatMode.Restart
         ),
-        label = "marquee"
+        label = "shimmer"
     )
 
     val backgroundColor = if (state.isFailed) SdkColors.error else SdkColors.lightGreen
@@ -287,12 +286,10 @@ private fun ProgressBar(
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth(0.4f)
+                                    .fillMaxWidth(0.5f)
                                     .align(Alignment.CenterStart)
                                     .offset(
-                                        x = with(LocalDensity.current) {
-                                            (marqueePosition.value * 170.dp).toPx()
-                                        }.dp
+                                        x = shimmerPosition.value * 100.dp // Adjust multiplier for smoother travel
                                     )
                                     .clip(RoundedCornerShape(4.dp))
                                     .background(progressColor)
@@ -364,15 +361,6 @@ private fun StepText(
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun CheckoutInitiatedBottomSheetContentPreview() = SdkTheme {
-    CheckoutInitiatedBottomSheetContent(
-        state = TransactionState.Initiated(),
-        onDone = {}
-    )
-}
-
 private enum class ProgressStep {
     Initiated, Processing, Completed
 }
@@ -382,3 +370,12 @@ private data class StepState(
     val isCurrent: Boolean = false,
     val isFailed: Boolean = false
 )
+
+@Preview(showBackground = true)
+@Composable
+private fun CheckoutInitiatedBottomSheetContentPreview() = SdkTheme {
+    CheckoutInitiatedBottomSheetContent(
+        state = TransactionState.Initiated(),
+        onDone = {}
+    )
+}
