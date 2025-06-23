@@ -19,6 +19,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Mona SDK"
-include(":example:app")
 include(":sdk")

@@ -11,7 +11,6 @@ lifecycle = "2.9.1"
 # Android
 desugarjdklibs = "com.android.tools:desugar_jdk_libs:2.1.5"
 # AndroidX
-androidx-appcompat = "androidx.appcompat:appcompat:1.7.0"
 androidx-biometric = "androidx.biometric:biometric:1.4.0-alpha04"
 androidx-browser = "androidx.browser:browser:1.8.0"
 androidx-core = "androidx.core:core-ktx:1.16.0"
@@ -52,7 +51,6 @@ espresso-core = "com.android.support.test.espresso:espresso-core:3.0.2"
 timber = "com.jakewharton.timber:timber:5.0.1"
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    id("maven-publish")
 }
 
 android {
@@ -32,6 +33,12 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
     }
 }
 
@@ -88,4 +95,18 @@ dependencies {
 
     // Timber
     implementation(libs.timber)
+}
+
+publishing {
+    publications {
+        create("release", MavenPublication::class) {
+            groupId = "com.mona"
+            artifactId = "sdk"
+            version = "1.0.0"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
 }
