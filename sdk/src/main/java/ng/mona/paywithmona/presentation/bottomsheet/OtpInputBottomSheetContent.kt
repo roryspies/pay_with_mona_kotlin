@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,8 +34,9 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,10 +47,14 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ng.mona.paywithmona.presentation.shared.SdkButton
 import ng.mona.paywithmona.presentation.theme.SdkColors
+import ng.mona.paywithmona.presentation.theme.SdkTheme
+import timber.log.Timber
 
 @Composable
 internal fun OtpInputBottomSheetContent(
@@ -113,48 +119,62 @@ private fun OtpInputField(
         }
     }
 
-    Row(
+    BoxWithConstraints(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
-    ) {
-        repeat(length) { index ->
-            OtpDigitField(
-                value = otpValue.getOrNull(index)?.toString() ?: "",
-                isPassword = isPassword,
-                isFocused = currentFocusIndex == index,
-                focusRequester = focusRequesters[index],
-                onValueChange = { newValue ->
-                    handleOtpValueChange(
-                        newValue = newValue,
-                        currentValue = otpValue,
-                        index = index,
-                        length = length,
-                        focusRequesters = focusRequesters,
-                        onOtpChange = { otpValue = it },
-                        onFocusChange = { currentFocusIndex = it }
-                    )
-                },
-                onBackspace = {
-                    handleBackspace(
-                        currentValue = otpValue,
-                        index = index,
-                        focusRequesters = focusRequesters,
-                        onOtpChange = { otpValue = it },
-                        onFocusChange = { currentFocusIndex = it }
-                    )
-                },
-                onFocusChanged = { isFocused ->
-                    if (isFocused) {
-                        currentFocusIndex = index
+        content = {
+            val spacing = 12.dp
+            val singleFieldWidth = with(LocalDensity.current) {
+                val maxWidth = constraints.maxWidth
+                val totalSpace = (length - 1) * spacing.roundToPx()
+                ((maxWidth - totalSpace) / length).toDp()
+            }.coerceAtMost(48.dp)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+                content = {
+                    repeat(length) { index ->
+                        OtpDigitField(
+                            value = otpValue.getOrNull(index)?.toString() ?: "",
+                            isPassword = isPassword,
+                            isFocused = currentFocusIndex == index,
+                            focusRequester = focusRequesters[index],
+                            size = singleFieldWidth,
+                            onValueChange = { newValue ->
+                                handleOtpValueChange(
+                                    newValue = newValue,
+                                    currentValue = otpValue,
+                                    index = index,
+                                    length = length,
+                                    focusRequesters = focusRequesters,
+                                    onOtpChange = { otpValue = it },
+                                    onFocusChange = { currentFocusIndex = it }
+                                )
+                            },
+                            onBackspace = {
+                                handleBackspace(
+                                    currentValue = otpValue,
+                                    index = index,
+                                    focusRequesters = focusRequesters,
+                                    onOtpChange = { otpValue = it },
+                                    onFocusChange = { currentFocusIndex = it }
+                                )
+                            },
+                            onFocusChanged = { isFocused ->
+                                if (isFocused) {
+                                    currentFocusIndex = index
+                                }
+                            },
+                            onClick = {
+                                currentFocusIndex = index
+                                focusRequesters[index].requestFocus()
+                            }
+                        )
                     }
-                },
-                onClick = {
-                    currentFocusIndex = index
-                    focusRequesters[index].requestFocus()
                 }
             )
         }
-    }
+    )
 }
 
 @Composable
@@ -163,6 +183,7 @@ private fun OtpDigitField(
     isPassword: Boolean,
     isFocused: Boolean,
     focusRequester: FocusRequester,
+    size: Dp,
     onValueChange: (String) -> Unit,
     onBackspace: () -> Unit,
     onFocusChanged: (Boolean) -> Unit,
@@ -179,7 +200,7 @@ private fun OtpDigitField(
 
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(size)
             .border(
                 width = 2.dp,
                 color = borderColor,
@@ -221,7 +242,8 @@ private fun OtpDigitField(
                     .onFocusChanged { focusState ->
                         onFocusChanged(focusState.isFocused)
                     }
-                    .onKeyEvent { keyEvent ->
+                    .onPreviewKeyEvent { keyEvent ->
+                        Timber.e("Key event: ${keyEvent.key}, type: ${keyEvent.type} - ${keyEvent}")
                         if (keyEvent.key == Key.Backspace && keyEvent.type == KeyEventType.KeyDown) {
                             onBackspace()
                             true
@@ -239,7 +261,7 @@ private fun OtpDigitField(
                 decorationBox = { innerTextField ->
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(size),
                         content = { innerTextField() }
                     )
                 }
@@ -302,10 +324,11 @@ private fun handleBackspace(
 
 @Preview(showBackground = true)
 @Composable
-private fun OtpInputBottomSheetContentPreview() {
+private fun OtpInputBottomSheetContentPreview() = SdkTheme {
     OtpInputBottomSheetContent(
         title = "Enter OTP",
+        length = 7,
         onDone = { otp -> println("OTP Entered: $otp") },
-        onClose = { println("Closed") }
+        onClose = { println("Closed") },
     )
 }

@@ -6,6 +6,7 @@ import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.engine.okhttp.OkHttpConfig
 import io.ktor.client.plugins.DefaultRequest
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.api.createClientPlugin
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
@@ -16,6 +17,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.URLProtocol
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.AttributeKey
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 
@@ -55,10 +57,14 @@ internal fun getDefaultHttpClient(
         accept(ContentType.Application.Json)
     }
 
+    install(headersPlugin())
+
     if (modify != null) {
         modify(this)
     }
 }
+
+internal val disableContentTypeKey = AttributeKey<Boolean>("noContentType")
 
 internal val httpClient by lazy {
     getDefaultHttpClient {
@@ -78,6 +84,16 @@ internal val httpClient by lazy {
             host = ApiConfig.API_HOST
             url {
                 protocol = URLProtocol.HTTPS
+            }
+        }
+    }
+}
+
+private fun headersPlugin() = createClientPlugin("headersPlugin") {
+    onRequest { request, _ ->
+        request.headers.apply {
+            if (request.attributes.contains(disableContentTypeKey)) {
+                remove("Content-Type")
             }
         }
     }

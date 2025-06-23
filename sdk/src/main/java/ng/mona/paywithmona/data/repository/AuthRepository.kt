@@ -17,6 +17,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import ng.mona.paywithmona.data.local.SdkStorage
 import ng.mona.paywithmona.data.model.MerchantBranding
+import ng.mona.paywithmona.data.remote.disableContentTypeKey
 import ng.mona.paywithmona.data.remote.httpClient
 import ng.mona.paywithmona.domain.SingletonCompanionWithDependency
 import ng.mona.paywithmona.service.biometric.BiometricService
@@ -116,6 +117,7 @@ internal class AuthRepository private constructor(
         return try {
             val response: JsonObject = httpClient.post("login/validate") {
                 header("x-mona-key-id", keyId)
+                attributes.put(disableContentTypeKey, true)
             }.body()
             response["data"]?.jsonObject
         } catch (e: Exception) {

@@ -159,6 +159,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     activity = currentActivity
 
                     val sdkState by sdkState.collectAsStateWithLifecycle(SdkState.Idle)
+                    val paymentOptions by state.paymentOptions.collectAsStateWithLifecycle()
 
                     LaunchedEffect(Unit) {
                         validatePii()
@@ -174,7 +175,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     }
 
                     PaymentMethods(
-                        payment.savedPaymentOptions,
+                        paymentOptions,
                         modifier,
                         sdkState == SdkState.Loading,
                         ::makePayment
@@ -460,6 +461,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     Snackbar.LENGTH_SHORT
                 ).show()
             }
+            resetInternalState()
             sdkState.update { state }
         }
     }

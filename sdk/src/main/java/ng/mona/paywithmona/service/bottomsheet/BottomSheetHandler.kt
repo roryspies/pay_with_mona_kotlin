@@ -1,7 +1,5 @@
 package ng.mona.paywithmona.service.bottomsheet
 
-import android.app.Activity
-import android.view.ViewGroup
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -10,11 +8,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -26,11 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -52,7 +53,6 @@ import ng.mona.paywithmona.presentation.bottomsheet.KeyExchangeBottomSheetConten
 import ng.mona.paywithmona.presentation.bottomsheet.LoadingBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.OtpInputBottomSheetContent
 import ng.mona.paywithmona.presentation.shared.PoweredByMona
-import ng.mona.paywithmona.presentation.theme.SdkTheme
 import ng.mona.paywithmona.util.lighten
 import ng.mona.paywithmona.util.setNavigationBarColor
 
@@ -63,18 +63,20 @@ internal class BottomSheetHandler(
     private val onComplete: (MonaProduct, Boolean) -> Unit,
 ) {
     private val content = MutableStateFlow<BottomSheetContent?>(null)
-    private var dialog: BottomSheetDialog? = null
+    private var fragment: DialogFragment? = null
 
     private val _response = MutableSharedFlow<BottomSheetResponse>()
     val response: SharedFlow<BottomSheetResponse>
         get() = _response
 
-    fun show(content: BottomSheetContent, activity: Activity? = null) {
+    fun show(content: BottomSheetContent, activity: FragmentActivity? = null) {
         scope.launch(Dispatchers.Main) {
             this@BottomSheetHandler.content.update { content }
-            if (dialog == null && activity != null) {
-                dialog = buildDialog(activity)
-                dialog?.show()
+            if (fragment == null && activity != null) {
+                fragment = DialogFragment {
+                    Content()
+                }
+                fragment?.show(activity.supportFragmentManager, "PayWithMonaBottomSheet")
             }
         }
     }
@@ -82,8 +84,8 @@ internal class BottomSheetHandler(
     fun dismiss() {
         updateResponse(BottomSheetResponse.Dismissed)
         content.update { null }
-        dialog?.dismiss()
-        dialog = null
+        fragment?.dismiss()
+        fragment = null
     }
 
     @Composable
@@ -102,7 +104,9 @@ internal class BottomSheetHandler(
             modifier = modifier
                 .fillMaxWidth()
                 .background(background, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
-                .padding(bottom = 16.dp),
+                .padding(bottom = 16.dp)
+                .imePadding()
+                .windowInsetsPadding(WindowInsets.ime),
             horizontalAlignment = Alignment.CenterHorizontally,
             content = {
                 Header(
@@ -240,32 +244,6 @@ internal class BottomSheetHandler(
                             }
                         )
                     }
-                )
-            }
-        )
-    }
-
-    private fun buildDialog(activity: Activity) = BottomSheetDialog(activity).apply {
-        setCancelable(false)
-        setCanceledOnTouchOutside(false)
-        behavior.isDraggable = true
-        behavior.isHideable = false
-        behavior.skipCollapsed = true
-        window?.setBackgroundDrawableResource(android.R.color.transparent)
-        setOnShowListener {
-            findViewById<ViewGroup>(com.google.android.material.R.id.design_bottom_sheet)
-                ?.setBackgroundResource(android.R.color.transparent)
-        }
-        setContentView(
-            ComposeView(activity).apply {
-                setContent {
-                    SdkTheme {
-                        this@BottomSheetHandler.Content()
-                    }
-                }
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
                 )
             }
         )
