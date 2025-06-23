@@ -1,13 +1,13 @@
 package ng.mona.paywithmona.presentation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -23,12 +23,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import ng.mona.paywithmona.R
+import ng.mona.paywithmona.data.model.Bank
+import ng.mona.paywithmona.data.model.Card
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.presentation.theme.SdkColors
+import ng.mona.paywithmona.presentation.theme.SdkTheme
 
 internal enum class PaymentMethodItemType {
     Methods,
@@ -92,18 +96,14 @@ internal fun PaymentMethodItem(
                                 contentDescription = entry.bank?.name ?: entry.card?.bankName,
                                 modifier = Modifier.size(36.dp),
                             )
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .border(2.dp, Color.White, CircleShape),
-                                content = {
-                                    Icon(
-                                        modifier = Modifier.size(14.dp),
-                                        painter = painterResource(if (entry.bank != null) R.drawable.ic_bank_bold else R.drawable.ic_cards),
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
+                            Icon(
+                                modifier = Modifier.align(Alignment.BottomEnd)
+                                    .background(SdkColors.white, CircleShape)
+                                    .padding(2.dp)
+                                    .size(10.dp),
+                                painter = painterResource(if (entry.bank != null) R.drawable.ic_bank_bold else R.drawable.ic_cards),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
                             )
                         }
                     )
@@ -189,5 +189,57 @@ internal fun PaymentMethodItem(
                 )
             }
         }
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PaymentMethodItemPreview() = SdkTheme {
+    PaymentMethodItem(
+        entry = PaymentMethod.PayByTransfer,
+        type = PaymentMethodItemType.Methods,
+        onClick = {},
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SelectedPaymentMethodItemPreview() = SdkTheme {
+    PaymentMethodItem(
+        entry = PaymentMethod.PayWithCard,
+        type = PaymentMethodItemType.Confirmation,
+        selected = true,
+        onClick = {},
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun BankPaymentMethodItemPreview() = SdkTheme {
+    PaymentMethodItem(
+        entry = PaymentMethod.SavedInfo(
+            bank = Bank(
+                name = "Bank of Mona",
+                accountNumber = "1234567890"
+            )
+        ),
+        type = PaymentMethodItemType.Methods,
+        selected = true,
+        onClick = {},
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CardPaymentMethodItemPreview() = SdkTheme {
+    PaymentMethodItem(
+        entry = PaymentMethod.SavedInfo(
+            card = Card(
+                bankName = "Bank of Mona",
+                accountNumber = "1234567890"
+            )
+        ),
+        type = PaymentMethodItemType.Confirmation,
+        onClick = {},
     )
 }

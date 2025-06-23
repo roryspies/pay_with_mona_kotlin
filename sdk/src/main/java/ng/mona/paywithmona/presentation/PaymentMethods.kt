@@ -14,7 +14,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,6 +24,7 @@ import ng.mona.paywithmona.R
 import ng.mona.paywithmona.data.model.PaymentOptions
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.presentation.shared.SdkButton
+import ng.mona.paywithmona.presentation.theme.SdkColors
 import ng.mona.paywithmona.presentation.theme.SdkTheme
 
 @Composable
@@ -58,7 +58,7 @@ internal fun PaymentMethods(
 
     Column(
         modifier = modifier
-            .background(Color.White)
+            .background(SdkColors.white)
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(32.dp),
         content = {
@@ -95,7 +95,7 @@ internal fun PaymentMethods(
                             val method = selectedMethod as PaymentMethod.SavedInfo
                             Box(
                                 modifier = Modifier.padding(horizontal = 20.dp).size(1.dp, 20.dp)
-                                    .background(Color.White)
+                                    .background(SdkColors.white)
                             )
                             AsyncImage(
                                 model = (method.bank?.logo ?: method.card?.logo),
