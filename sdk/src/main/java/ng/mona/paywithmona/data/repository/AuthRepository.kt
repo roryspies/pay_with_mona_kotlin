@@ -20,6 +20,7 @@ import ng.mona.paywithmona.data.model.MerchantBranding
 import ng.mona.paywithmona.data.remote.disableContentTypeKey
 import ng.mona.paywithmona.data.remote.httpClient
 import ng.mona.paywithmona.domain.SingletonCompanionWithDependency
+import ng.mona.paywithmona.service.biometric.BiometricPromptConfig
 import ng.mona.paywithmona.service.biometric.BiometricService
 import ng.mona.paywithmona.util.toJsonObject
 import timber.log.Timber
@@ -72,6 +73,10 @@ internal class AuthRepository private constructor(
         val signature = BiometricService.createSignature(
             activity as FragmentActivity,
             data,
+            config = BiometricPromptConfig(
+                title = "Authorize",
+                subtitle = "Use your biometric to authenticate.",
+            )
         )
         if (signature.isBlank()) {
             throw Exception("Failed to create signature")

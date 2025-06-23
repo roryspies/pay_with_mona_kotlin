@@ -22,6 +22,7 @@ import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.domain.PaymentMethodType
 import ng.mona.paywithmona.domain.SingletonCompanionWithDependency
 import ng.mona.paywithmona.domain.type
+import ng.mona.paywithmona.service.biometric.BiometricPromptConfig
 import ng.mona.paywithmona.service.biometric.BiometricService
 import ng.mona.paywithmona.service.bottomsheet.BottomSheetContent
 import ng.mona.paywithmona.service.bottomsheet.BottomSheetHandler
@@ -93,8 +94,20 @@ internal class CheckoutRepository private constructor(
                 val hash = MessageDigest.getInstance("SHA-256")
                     .digest(Json.encodeToString(data).base64().toByteArray())
                     .joinToString("") { "%02x".format(it) }
-                val signature = activity?.let {
-                    BiometricService.signTransaction(it, hash)
+                val signature = try {
+                    activity?.let {
+                        BiometricService.createSignature(
+                            it,
+                            hash,
+                            BiometricPromptConfig(
+                                title = "Authorize payment",
+                                subtitle = "Use your biometric to authorize this transaction",
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to create signature for payment")
+                    null
                 }
                 if (signature == null) {
                     Timber.e("signature is null, cannot proceed with payment")

@@ -53,10 +53,7 @@ object BiometricService {
     suspend fun createSignature(
         activity: FragmentActivity,
         data: String,
-        config: BiometricPromptConfig = BiometricPromptConfig(
-            title = "Sign Transaction",
-            subtitle = "Use your biometric to authorize this transaction"
-        )
+        config: BiometricPromptConfig
     ): String = withContext(Dispatchers.Main) {
         val model = Build.MODEL
         if (unsupportedModels.contains(model)) {
@@ -106,11 +103,5 @@ object BiometricService {
             )
             biometricPrompt.authenticate(promptInfo, BiometricPrompt.CryptoObject(signature))
         }
-    }
-
-    suspend fun signTransaction(activity: FragmentActivity, hashedTransaction: String) = try {
-        createSignature(activity, hashedTransaction)
-    } catch (_: BiometricException) {
-        null
     }
 }
