@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.mona.sdk"
+    namespace = "ng.mona.paywithmona"
     compileSdk = 36
 
     defaultConfig {
@@ -100,8 +100,8 @@ dependencies {
 publishing {
     publications {
         create("release", MavenPublication::class) {
-            groupId = "com.mona"
-            artifactId = "sdk"
+            groupId = "ng.mona"
+            artifactId = "paywithmona"
             version = "1.0.0"
 
             afterEvaluate {
