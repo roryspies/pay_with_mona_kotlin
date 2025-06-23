@@ -29,6 +29,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 # Coil
 coil = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+coil-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
 # Datastore
 datastore = "androidx.datastore:datastore-preferences:1.1.7"
 # Kotlin

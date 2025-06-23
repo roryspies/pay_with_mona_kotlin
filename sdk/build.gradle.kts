@@ -70,6 +70,7 @@ dependencies {
     // Coil
     implementation(libs.coil)
     implementation(libs.coil.network)
+    implementation(libs.coil.svg)
 
     // Custom Tabs
     implementation(libs.androidx.browser)
