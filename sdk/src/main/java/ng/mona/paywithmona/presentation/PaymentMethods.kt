@@ -68,7 +68,7 @@ internal fun PaymentMethods(
                 fontWeight = FontWeight.W500,
             )
             Column(
-                verticalArrangement = Arrangement.spacedBy(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 content = {
                     methods.forEach { method ->
                         PaymentMethodItem(

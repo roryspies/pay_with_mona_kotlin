@@ -209,6 +209,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     private fun makePayment(method: PaymentMethod) = scope.launch {
         try {
             sdkState.update { SdkState.Loading }
+            bottomSheet.show(BottomSheetContent.Loading, activity)
 
             state.method = method
 
@@ -226,38 +227,37 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             val hasKey = !storage.keyId.first().isNullOrBlank()
             val isSavedPaymentMethod = method is PaymentMethod.SavedInfo
 
-            val pay = suspend {
+            suspend fun pay() {
+                bottomSheet.show(BottomSheetContent.CheckoutConfirmation, activity)
+                if (bottomSheet.response.first() != BottomSheetResponse.Pay) {
+                    return
+                }
                 bottomSheet.show(BottomSheetContent.Loading, activity)
-                val response = checkout.makePayment(activity, state, bottomSheet)
-                if (response != null) {
-                    state.checkout = state.checkout?.copy(
-                        friendlyId = response["friendlyID"]?.jsonPrimitive?.content
-                    )
-                    sdkState.update { SdkState.TransactionInitiated }
-                    transactionState.update {
-                        TransactionState.Initiated(
-                            transactionId = response["transactionRef"]?.jsonPrimitive?.content,
-                            friendlyId = state.checkout?.friendlyId,
-                            amount = state.checkout?.transactionAmountInKobo
-                        )
-                    }
-                    bottomSheet.show(
-                        BottomSheetContent.CheckoutInitiated,
-                        activity,
+                val response = checkout.makePayment(
+                    activity,
+                    state,
+                    bottomSheet
+                ) ?: return
+                state.checkout = state.checkout?.copy(
+                    friendlyId = response["friendlyID"]?.jsonPrimitive?.content
+                )
+                sdkState.update { SdkState.TransactionInitiated }
+                transactionState.update {
+                    TransactionState.Initiated(
+                        transactionId = response["transactionRef"]?.jsonPrimitive?.content,
+                        friendlyId = state.checkout?.friendlyId,
+                        amount = state.checkout?.transactionAmountInKobo
                     )
                 }
+                bottomSheet.show(
+                    BottomSheetContent.CheckoutInitiated,
+                    activity,
+                )
             }
 
             // If the user has a key and is using a saved payment method, just show confirmation
             if (hasKey && isSavedPaymentMethod) {
-                bottomSheet.show(
-                    BottomSheetContent.CheckoutConfirmation,
-                    activity,
-                )
-                if (bottomSheet.response.first() == BottomSheetResponse.Pay) {
-                    pay()
-                }
-                return@launch
+                return@launch pay()
             }
 
             // Listen for custom tab close events
@@ -271,7 +271,11 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             // key exchange needs to be done, so handle first.
             val doKeyExchange = !hasKey && isSavedPaymentMethod
             if (doKeyExchange) {
-                initiateKeyExchange()
+                val response = initiateKeyExchange()
+                if (!response) {
+                    Timber.e("Key exchange failed or was declined")
+                    return@launch
+                }
             }
 
             when (isSavedPaymentMethod) {
@@ -296,7 +300,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         } catch (e: Exception) {
             handleError(e, SdkState.Idle)
         } finally {
-            sdkState.update { SdkState.Idle }
+            resetInternalState(false)
         }
     }
 
@@ -310,7 +314,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         method: PaymentMethod? = null,
         withRedirect: Boolean = true,
         product: MonaProduct = MonaProduct.Checkout,
-    ) {
+    ): Boolean {
         val sessionId = checkout.generateSessionId()
         val url = UrlBuilder(
             sessionId = sessionId,
@@ -324,7 +328,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             }
         )
         launchUrl(url)
-        sseListener.subscribeToAuthEvents(sessionId)
+        return sseListener.subscribeToAuthEvents(sessionId)
     }
 
     private suspend fun validatePii() {
@@ -366,8 +370,9 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     private suspend fun performAuth(
         token: String,
         product: MonaProduct = MonaProduct.Checkout,
-    ) = withContext(Dispatchers.Main) {
+    ): Boolean = withContext(Dispatchers.Main) {
         var successful = false
+
         try {
             authState.update { AuthState.PerformingLogin }
 
@@ -378,7 +383,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             val loginResponse = auth.login(
                 token,
                 state.checkout?.phoneNumber.orEmpty()
-            ) ?: return@withContext
+            ) ?: return@withContext false
 
             bottomSheet.show(BottomSheetContent.KeyExchange, activity)
 
@@ -387,7 +392,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     bottomSheet.show(BottomSheetContent.Loading, activity)
                     auth.signAndCommitKeys(
                         loginResponse["deviceAuth"]!!.jsonObject,
-                        activity ?: return@withContext,
+                        activity ?: return@withContext false,
                     )
 
                     val checkoutId = storage.checkoutId.first()
@@ -412,6 +417,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                 bottomSheet.dismiss()
             }
         }
+
+        successful
     }
 
     private fun onComplete(product: MonaProduct, success: Boolean) {
@@ -465,7 +472,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     Snackbar.LENGTH_SHORT
                 ).show()
             }
-            resetInternalState()
+            resetInternalState(false)
             sdkState.update { state }
         }
     }

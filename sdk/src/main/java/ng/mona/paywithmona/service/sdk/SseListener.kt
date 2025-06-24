@@ -19,7 +19,7 @@ import timber.log.Timber
 internal class SseListener(
     private val sse: () -> FirebaseSseListener,
     private val state: () -> PayWithMonaSdkState,
-    private val performAuth: suspend (String, MonaProduct) -> Unit,
+    private val performAuth: suspend (String, MonaProduct) -> Boolean,
     private val closeCustomTabs: () -> Unit,
     private val updateSdkState: (SdkState) -> Unit,
     private val updateTransactionState: (TransactionState) -> Unit,
@@ -113,8 +113,8 @@ internal class SseListener(
                     val token = data["strongAuthToken"]?.jsonPrimitive?.content
 
                     CoroutineScope(cont.context).launch {
-                        performAuth(token.orEmpty(), product)
-                        cont.resumeSafely(token)
+                        val response = performAuth(token.orEmpty(), product)
+                        cont.resumeSafely(response)
                     }
                 }
             },
