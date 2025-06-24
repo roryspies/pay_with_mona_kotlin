@@ -38,7 +38,7 @@ internal fun KeyExchangeBottomSheetContent(
     onSetUp: () -> Unit
 ) {
     Column(
-        modifier = modifier.padding(16.dp),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         content = {
             Row(

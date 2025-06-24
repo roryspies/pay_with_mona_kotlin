@@ -65,12 +65,12 @@ internal fun CheckoutInitiatedBottomSheetContent(
     val stepStates = remember(currentStep, isFailed) {
         mapOf(
             ProgressStep.Initiated to StepState(
-                isCompleted = currentStep != ProgressStep.Initiated,
+                isCompleted = true,
                 isCurrent = currentStep == ProgressStep.Initiated
             ),
             ProgressStep.Processing to StepState(
                 isCompleted = currentStep == ProgressStep.Completed,
-                isCurrent = currentStep == ProgressStep.Processing,
+                isCurrent = currentStep != ProgressStep.Completed,
                 isFailed = isFailed && currentStep == ProgressStep.Completed
             ),
             ProgressStep.Completed to StepState(

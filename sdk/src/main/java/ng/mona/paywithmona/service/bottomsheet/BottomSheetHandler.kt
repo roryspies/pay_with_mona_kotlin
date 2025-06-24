@@ -2,7 +2,16 @@ package ng.mona.paywithmona.service.bottomsheet
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,7 +51,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ng.mona.paywithmona.R
-import ng.mona.paywithmona.data.model.MonaProduct
 import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.event.TransactionState
@@ -60,7 +68,6 @@ internal class BottomSheetHandler(
     private val scope: CoroutineScope,
     private val state: () -> PayWithMonaSdkState,
     private val transactionState: () -> StateFlow<TransactionState>,
-    private val onComplete: (MonaProduct, Boolean) -> Unit,
 ) {
     private val content = MutableStateFlow<BottomSheetContent?>(null)
     private var fragment: DialogFragment? = null
@@ -88,6 +95,7 @@ internal class BottomSheetHandler(
         fragment = null
     }
 
+    @OptIn(ExperimentalAnimationApi::class)
     @Composable
     private fun Content(modifier: Modifier = Modifier) {
         val content by content.collectAsStateWithLifecycle()
@@ -106,7 +114,13 @@ internal class BottomSheetHandler(
                 .background(background, RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
                 .padding(bottom = 16.dp)
                 .imePadding()
-                .windowInsetsPadding(WindowInsets.ime),
+                .windowInsetsPadding(WindowInsets.ime)
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             content = {
                 Header(
@@ -127,6 +141,15 @@ internal class BottomSheetHandler(
                         .padding(16.dp),
                     contentAlignment = Alignment.Center,
                     targetState = content,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(220, delayMillis = 90)) +
+                                scaleIn(
+                                    initialScale = 0.92f,
+                                    animationSpec = tween(220, delayMillis = 90)
+                                )).togetherWith(
+                            fadeOut(animationSpec = tween(90))
+                        )
+                    },
                     content = { current ->
                         when (current) {
                             BottomSheetContent.Loading -> LoadingBottomSheetContent()
@@ -172,7 +195,11 @@ internal class BottomSheetHandler(
 
                             BottomSheetContent.CheckoutSuccess -> {
                                 val onAction = {
-                                    onComplete(MonaProduct.Checkout, true)
+                                    updateResponse(
+                                        BottomSheetResponse.CheckoutComplete(
+                                            true
+                                        )
+                                    )
                                 }
 
                                 LaunchedEffect(Unit) {
@@ -190,7 +217,13 @@ internal class BottomSheetHandler(
                             BottomSheetContent.CheckoutFailure -> CheckoutCompleteBottomSheetContent(
                                 success = false,
                                 amount = state().checkout?.transactionAmountInKobo ?: 0,
-                                onAction = { onComplete(MonaProduct.Checkout, false) }
+                                onAction = {
+                                    updateResponse(
+                                        BottomSheetResponse.CheckoutComplete(
+                                            false
+                                        )
+                                    )
+                                }
                             )
 
                             else -> {

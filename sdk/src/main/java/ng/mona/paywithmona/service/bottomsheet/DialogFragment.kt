@@ -20,7 +20,7 @@ internal class DialogFragment() : BottomSheetDialogFragment() {
         return (super.onCreateDialog(savedInstanceState) as BottomSheetDialog).apply {
             setCancelable(false)
             setCanceledOnTouchOutside(false)
-            behavior.isDraggable = true
+            behavior.isDraggable = false
             behavior.isHideable = false
             behavior.skipCollapsed = true
             window?.setBackgroundDrawableResource(android.R.color.transparent)
