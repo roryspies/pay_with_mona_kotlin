@@ -28,13 +28,12 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import ng.mona.paywithmona.data.local.SdkStorage
+import ng.mona.paywithmona.data.model.Checkout
 import ng.mona.paywithmona.data.model.MerchantBranding
-import ng.mona.paywithmona.data.model.MonaCheckout
 import ng.mona.paywithmona.data.model.MonaProduct
-import ng.mona.paywithmona.data.remote.dto.InitiatePaymentResponse
 import ng.mona.paywithmona.data.repository.AuthRepository
 import ng.mona.paywithmona.data.repository.CheckoutRepository
-import ng.mona.paywithmona.domain.MonaSdkState
+import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.domain.PaymentType
 import ng.mona.paywithmona.event.AuthState
@@ -69,7 +68,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     private val sse = FirebaseSseListener()
 
-    private var state = MonaSdkState()
+    private var state = PayWithMonaSdkState()
 
     private val customTabsConnection by lazy {
         CustomTabsConnection(context)
@@ -148,8 +147,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     @Composable
     fun PayWithMona(
-        payment: InitiatePaymentResponse,
-        checkout: MonaCheckout,
+        checkout: Checkout,
         modifier: Modifier,
     ) = SdkTheme(
         content = {
@@ -165,11 +163,9 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                         validatePii()
                     }
 
-                    LaunchedEffect(payment, checkout) {
+                    LaunchedEffect(checkout) {
                         state.let {
-                            it.paymentOptions.update { payment.savedPaymentOptions }
-                            it.transactionId = payment.transactionId
-                            it.friendlyId = payment.friendlyId
+                            it.paymentOptions.update { checkout.paymentOptions }
                             it.checkout = checkout
                         }
                     }
@@ -229,12 +225,14 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                 bottomSheet.show(BottomSheetContent.Loading, activity)
                 val response = checkout.makePayment(activity, state, bottomSheet)
                 if (response != null) {
-                    state.friendlyId = response["friendlyID"]?.jsonPrimitive?.content
+                    state.checkout = state.checkout?.copy(
+                        friendlyId = response["friendlyID"]?.jsonPrimitive?.content
+                    )
                     sdkState.update { SdkState.TransactionInitiated }
                     transactionState.update {
                         TransactionState.Initiated(
                             transactionId = response["transactionRef"]?.jsonPrimitive?.content,
-                            friendlyId = state.friendlyId,
+                            friendlyId = state.checkout?.friendlyId,
                             amount = state.checkout?.transactionAmountInKobo
                         )
                     }
@@ -279,7 +277,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     val url = UrlBuilder(
                         sessionId = sessionId,
                         merchantKey = getMerchantKey(),
-                        transactionId = state.transactionId.orEmpty(),
+                        transactionId = state.checkout?.transactionId.orEmpty(),
                         method = method,
                         type = when (hasKey) {
                             true -> PaymentType.DirectPayment
@@ -312,7 +310,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         val url = UrlBuilder(
             sessionId = sessionId,
             merchantKey = getMerchantKey(),
-            transactionId = state.transactionId.orEmpty(),
+            transactionId = state.checkout?.transactionId.orEmpty(),
             method = method,
             withRedirect = withRedirect,
             type = when (product) {
@@ -418,8 +416,9 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                     transactionState.update {
                         val info = it as? TransactionState.WithInfo
                         TransactionState.NavigateToResult(
-                            transactionId = info?.transactionId ?: state.transactionId.orEmpty(),
-                            friendlyId = info?.friendlyId ?: state.friendlyId.orEmpty(),
+                            transactionId = info?.transactionId
+                                ?: state.checkout?.transactionId.orEmpty(),
+                            friendlyId = info?.friendlyId ?: state.checkout?.friendlyId.orEmpty(),
                             amount = info?.amount ?: state.checkout?.transactionAmountInKobo ?: 0L,
                         )
                     }
@@ -468,7 +467,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     private fun resetInternalState(resetMonaState: Boolean = true) {
         if (resetMonaState) {
-            state = MonaSdkState()
+            state = PayWithMonaSdkState()
         }
         sdkState.update { SdkState.Idle }
         transactionState.update { TransactionState.Idle }

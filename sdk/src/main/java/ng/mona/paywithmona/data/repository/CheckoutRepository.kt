@@ -17,7 +17,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import ng.mona.paywithmona.data.local.SdkStorage
 import ng.mona.paywithmona.data.remote.httpClient
-import ng.mona.paywithmona.domain.MonaSdkState
+import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.domain.PaymentMethodType
 import ng.mona.paywithmona.domain.SingletonCompanionWithDependency
@@ -42,18 +42,9 @@ internal class CheckoutRepository private constructor(
         SdkStorage.getInstance(context)
     }
 
-//    suspend fun getTransaction(
-//        transactionId: String,
-//    ): JsonObject? = try {
-//        httpClient.get("pay?transactionId=${transactionId.encodeUrl()}").body()
-//    } catch (e: Exception) {
-//        Timber.e(e, "Failed to get transaction details")
-//        null
-//    }
-
     suspend fun makePayment(
         activity: FragmentActivity?,
-        state: MonaSdkState,
+        state: PayWithMonaSdkState,
         bottomSheetHandler: BottomSheetHandler,
         sign: Boolean = false,
         extras: Map<String, String> = emptyMap(),
@@ -62,7 +53,7 @@ internal class CheckoutRepository private constructor(
         val checkoutId = storage.checkoutId.first()
         val payload = buildMap {
             put("hasDeviceKey", !checkoutId.isNullOrBlank())
-            put("transactionId", state.transactionId)
+            put("transactionId", state.checkout?.transactionId)
             when (method.type) {
                 PaymentMethodType.Card -> {
                     put("bankId", method.card?.bankId)

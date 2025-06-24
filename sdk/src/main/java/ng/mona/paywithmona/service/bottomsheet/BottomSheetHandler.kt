@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ng.mona.paywithmona.R
 import ng.mona.paywithmona.data.model.MonaProduct
-import ng.mona.paywithmona.domain.MonaSdkState
+import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.event.TransactionState
 import ng.mona.paywithmona.presentation.bottomsheet.CheckoutCompleteBottomSheetContent
@@ -58,7 +58,7 @@ import ng.mona.paywithmona.util.setNavigationBarColor
 
 internal class BottomSheetHandler(
     private val scope: CoroutineScope,
-    private val state: () -> MonaSdkState,
+    private val state: () -> PayWithMonaSdkState,
     private val transactionState: () -> StateFlow<TransactionState>,
     private val onComplete: (MonaProduct, Boolean) -> Unit,
 ) {

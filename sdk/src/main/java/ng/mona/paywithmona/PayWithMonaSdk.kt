@@ -6,9 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import ng.mona.paywithmona.data.model.Checkout
 import ng.mona.paywithmona.data.model.MerchantBranding
-import ng.mona.paywithmona.data.model.MonaCheckout
-import ng.mona.paywithmona.data.remote.dto.InitiatePaymentResponse
 import ng.mona.paywithmona.event.AuthState
 import ng.mona.paywithmona.event.SdkState
 import ng.mona.paywithmona.event.TransactionState
@@ -41,13 +40,8 @@ object PayWithMonaSdk {
     }
 
     @Composable
-    fun PayWithMona(
-        payment: InitiatePaymentResponse,
-        checkout: MonaCheckout,
-        modifier: Modifier = Modifier,
-    ) {
+    fun PayWithMona(checkout: Checkout, modifier: Modifier = Modifier) {
         instance.PayWithMona(
-            payment,
             checkout,
             modifier,
         )

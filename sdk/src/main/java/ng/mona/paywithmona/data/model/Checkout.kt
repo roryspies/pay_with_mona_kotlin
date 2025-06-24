@@ -7,7 +7,7 @@ import java.time.LocalDate
 
 @Serializable
 @Stable
-data class MonaCheckout(
+data class Checkout(
     val transactionAmountInKobo: Int,
     val firstName: String? = null,
     val lastName: String? = null,
@@ -15,4 +15,7 @@ data class MonaCheckout(
     val bvn: String? = null,
     @Serializable(with = LocalDateSerializer::class)
     val dob: LocalDate? = null,
+    val paymentOptions: PaymentOptions? = null,
+    val transactionId: String? = null,
+    val friendlyId: String? = null,
 )

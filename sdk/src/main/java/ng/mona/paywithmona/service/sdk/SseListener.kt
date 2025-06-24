@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import ng.mona.paywithmona.data.model.MonaProduct
-import ng.mona.paywithmona.domain.MonaSdkState
+import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.event.SdkState
 import ng.mona.paywithmona.event.TransactionState
 import ng.mona.paywithmona.service.sse.FirebaseSseListener
@@ -18,7 +18,7 @@ import timber.log.Timber
 
 internal class SseListener(
     private val sse: () -> FirebaseSseListener,
-    private val state: () -> MonaSdkState,
+    private val state: () -> PayWithMonaSdkState,
     private val performAuth: suspend (String, MonaProduct) -> Unit,
     private val closeCustomTabs: () -> Unit,
     private val updateSdkState: (SdkState) -> Unit,
@@ -28,7 +28,7 @@ internal class SseListener(
         sse().listenForEvents(
             type = type,
             identifier = when (type) {
-                SseListenerType.PaymentUpdates, SseListenerType.TransactionMessages -> state().transactionId
+                SseListenerType.PaymentUpdates, SseListenerType.TransactionMessages -> state().checkout?.transactionId
                 else -> null
             },
             onDataChange = {
@@ -48,8 +48,8 @@ internal class SseListener(
                             "transaction_initiated" -> {
                                 updateTransactionState(
                                     TransactionState.Initiated(
-                                        friendlyId = state.friendlyId,
-                                        transactionId = state.transactionId,
+                                        friendlyId = state.checkout?.friendlyId,
+                                        transactionId = state.checkout?.transactionId,
                                         amount = state.checkout?.transactionAmountInKobo,
                                     )
                                 )
@@ -58,8 +58,8 @@ internal class SseListener(
                             "progress_update" -> {
                                 updateTransactionState(
                                     TransactionState.ProgressUpdate(
-                                        friendlyId = state.friendlyId,
-                                        transactionId = state.transactionId,
+                                        friendlyId = state.checkout?.friendlyId,
+                                        transactionId = state.checkout?.transactionId,
                                         amount = state.checkout?.transactionAmountInKobo,
                                     )
                                 )
@@ -69,19 +69,18 @@ internal class SseListener(
                                 Timber.e("Transaction failed received: $response")
                                 updateTransactionState(
                                     TransactionState.Failed(
-                                        friendlyId = state.friendlyId,
-                                        transactionId = state.transactionId,
+                                        friendlyId = state.checkout?.friendlyId,
+                                        transactionId = state.checkout?.transactionId,
                                         amount = state.checkout?.transactionAmountInKobo
                                     )
                                 )
                             }
 
                             "transaction_completed" -> {
-                                Timber.e("Transaction completed received: $response")
                                 updateTransactionState(
                                     TransactionState.Completed(
-                                        friendlyId = state.friendlyId,
-                                        transactionId = state.transactionId,
+                                        friendlyId = state.checkout?.friendlyId,
+                                        transactionId = state.checkout?.transactionId,
                                         amount = state.checkout?.transactionAmountInKobo
                                     )
                                 )
