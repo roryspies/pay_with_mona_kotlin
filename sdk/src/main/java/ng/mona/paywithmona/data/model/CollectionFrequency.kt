@@ -1,6 +1,6 @@
 package ng.mona.paywithmona.data.model
 
-enum class SubscriptionFrequency {
+enum class CollectionFrequency {
     Weekly,
     Monthly,
     Quarterly,
