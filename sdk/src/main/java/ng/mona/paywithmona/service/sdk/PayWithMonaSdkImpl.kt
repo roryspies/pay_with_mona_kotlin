@@ -29,6 +29,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import ng.mona.paywithmona.data.local.SdkStorage
 import ng.mona.paywithmona.data.model.Checkout
+import ng.mona.paywithmona.data.model.Collection
 import ng.mona.paywithmona.data.model.MerchantBranding
 import ng.mona.paywithmona.data.model.MonaProduct
 import ng.mona.paywithmona.data.repository.AuthRepository
@@ -191,6 +192,10 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             }
         }
     )
+
+    suspend fun consentCollection(collection: Collection, activity: FragmentActivity) {
+
+    }
 
     suspend fun reset() {
         // Reset the SDK state

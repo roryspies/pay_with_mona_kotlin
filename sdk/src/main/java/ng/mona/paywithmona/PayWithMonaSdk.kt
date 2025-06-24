@@ -4,9 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import ng.mona.paywithmona.data.model.Checkout
+import ng.mona.paywithmona.data.model.Collection
 import ng.mona.paywithmona.data.model.MerchantBranding
 import ng.mona.paywithmona.event.AuthState
 import ng.mona.paywithmona.event.SdkState
@@ -45,6 +47,10 @@ object PayWithMonaSdk {
             checkout,
             modifier,
         )
+    }
+
+    suspend fun consentCollection(collection: Collection, activity: FragmentActivity) {
+        instance.consentCollection(collection, activity)
     }
 
     suspend fun reset() {
