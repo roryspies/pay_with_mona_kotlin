@@ -57,6 +57,10 @@ object PayWithMonaSdk {
         return instance.consentCollection(collection, activity)
     }
 
+    suspend fun validatePii() {
+        instance.validatePii()
+    }
+
     suspend fun reset() {
         instance.reset()
     }

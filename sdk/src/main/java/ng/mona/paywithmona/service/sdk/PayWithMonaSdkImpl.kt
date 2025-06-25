@@ -295,6 +295,32 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         }
     }
 
+    suspend fun validatePii() = runCatching {
+        val keyId = storage.keyId.first() ?: return@runCatching
+
+        val response = auth.validatePii(keyId) ?: return@runCatching
+
+        val exists = response["exists"]?.jsonPrimitive?.booleanOrNull ?: false
+        // Non Mona User
+        if (!exists) {
+            return@runCatching authState.update { AuthState.NotAMonaUser }
+        }
+
+        // This is a Mona user, update the payment options
+        state.paymentOptions.update {
+            Json.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
+        }
+
+        authState.update {
+            when (storage.keyId.first().isNullOrBlank()) {
+                // User has not done key exchange
+                true -> AuthState.LoggedOut
+                // User has done key exchange
+                false -> AuthState.LoggedIn
+            }
+        }
+    }
+
     suspend fun reset() {
         // Reset the SDK state
         resetInternalState()
@@ -434,32 +460,6 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         )
         launchUrl(url)
         return sseListener.subscribeToAuthEvents(sessionId, product)
-    }
-
-    private suspend fun validatePii() = runCatching {
-        val keyId = storage.keyId.first() ?: return@runCatching
-
-        val response = auth.validatePii(keyId) ?: return@runCatching
-
-        val exists = response["exists"]?.jsonPrimitive?.booleanOrNull ?: false
-        // Non Mona User
-        if (!exists) {
-            return@runCatching authState.update { AuthState.NotAMonaUser }
-        }
-
-        // This is a Mona user, update the payment options
-        state.paymentOptions.update {
-            Json.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
-        }
-
-        authState.update {
-            when (storage.keyId.first().isNullOrBlank()) {
-                // User has not done key exchange
-                true -> AuthState.LoggedOut
-                // User has done key exchange
-                false -> AuthState.LoggedIn
-            }
-        }
     }
 
     private suspend fun performAuth(
