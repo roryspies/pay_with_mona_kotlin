@@ -45,7 +45,7 @@ internal fun CollectionAccountSelectionBottomSheetContent(
     merchantName: String,
     paymentOptions: PaymentOptions?,
     modifier: Modifier = Modifier,
-    onContinue: (Boolean) -> Unit,
+    onContinue: (PaymentMethod.SavedInfo?) -> Unit,
     onAddAccount: () -> Unit,
 ) {
     var showInfo by remember { mutableStateOf(false) }
@@ -183,7 +183,7 @@ internal fun CollectionAccountSelectionBottomSheetContent(
                 modifier = Modifier.fillMaxWidth(),
                 text = if (isPending) "Return to $merchantName" else "Approve debiting",
                 onClick = {
-                    onContinue(!isPending)
+                    onContinue(selectedMethod)
                 }
             )
             Text(
@@ -192,7 +192,6 @@ internal fun CollectionAccountSelectionBottomSheetContent(
                 fontSize = 10.sp,
                 color = SdkColors.subText,
                 lineHeight = 10.sp,
-                letterSpacing = 3.sp,
                 textAlign = TextAlign.Center
             )
         }

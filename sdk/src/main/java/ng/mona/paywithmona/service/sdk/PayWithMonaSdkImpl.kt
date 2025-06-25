@@ -33,9 +33,11 @@ import ng.mona.paywithmona.data.model.MerchantBranding
 import ng.mona.paywithmona.data.model.MonaProduct
 import ng.mona.paywithmona.data.repository.AuthRepository
 import ng.mona.paywithmona.data.repository.CheckoutRepository
+import ng.mona.paywithmona.data.repository.CollectionRepository
 import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.domain.PaymentType
+import ng.mona.paywithmona.domain.id
 import ng.mona.paywithmona.event.AuthState
 import ng.mona.paywithmona.event.SdkState
 import ng.mona.paywithmona.event.TransactionState
@@ -65,6 +67,10 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     private val checkout by lazy {
         CheckoutRepository.getInstance(context)
+    }
+
+    private val collection by lazy {
+        CollectionRepository.getInstance(context)
     }
 
     private val sse = FirebaseSseListener()
@@ -193,7 +199,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         }
     )
 
-    suspend fun consentCollection(collection: Collection, activity: FragmentActivity) {
+    suspend fun consentCollection(collection: Collection, activity: FragmentActivity): Collection? {
         val merchantName = merchantBranding.first()?.name ?: merchantBranding.first()?.tradingName
         bottomSheet.show(
             BottomSheetContent.CollectionConfirmation(
@@ -205,7 +211,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
         if (bottomSheet.response.first() != BottomSheetResponse.ToCollectionAccountSelection) {
             Timber.e("Collection consent was not granted")
-            return
+            return null
         }
 
         try {
@@ -220,7 +226,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             if (key.isNullOrBlank()) {
                 if (!initiateKeyExchange(product = MonaProduct.Collections)) {
                     Timber.e("Key exchange failed or was declined")
-                    return
+                    return null
                 }
             }
 
@@ -235,10 +241,12 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                 activity
             )
 
+            var method: PaymentMethod.SavedInfo
             do {
-                when (bottomSheet.response.first()) {
-                    BottomSheetResponse.ApproveCollectionDebiting -> {
-
+                when (val response = bottomSheet.response.first()) {
+                    is BottomSheetResponse.ApproveCollectionDebiting -> {
+                        method = response.method
+                        break
                     }
 
                     BottomSheetResponse.AddBankAccount -> {
@@ -252,12 +260,33 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
                     else -> {
                         Timber.e("Collection debiting was not approved")
-                        return
+                        return null
                     }
                 }
             } while (true)
+
+            bottomSheet.show(BottomSheetContent.Loading, activity)
+
+            this@PayWithMonaSdkImpl.collection.consentCollection(
+                method.id ?: return null,
+                collection.id ?: return null,
+                activity
+            ) ?: return null
+
+            bottomSheet.show(
+                BottomSheetContent.CollectionSuccess(merchantName.orEmpty(), collection, method),
+                activity
+            )
+
+            // wait for a response from the bottom sheet first before continuing
+            bottomSheet.response.first()
+
+            return collection.copy(
+                bankId = method.id,
+            )
         } catch (e: Exception) {
             handleError(e, SdkState.Idle)
+            return null
         } finally {
             resetInternalState(false)
             this.activity = null

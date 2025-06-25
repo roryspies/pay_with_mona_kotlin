@@ -1,5 +1,7 @@
 package ng.mona.paywithmona.service.bottomsheet
 
+import ng.mona.paywithmona.domain.PaymentMethod
+
 internal sealed interface BottomSheetResponse {
     data object CanEnrol : BottomSheetResponse
 
@@ -11,7 +13,7 @@ internal sealed interface BottomSheetResponse {
 
     data object ToCollectionAccountSelection : BottomSheetResponse
 
-    data object ApproveCollectionDebiting : BottomSheetResponse
+    data class ApproveCollectionDebiting(val method: PaymentMethod.SavedInfo) : BottomSheetResponse
 
     data object AddBankAccount : BottomSheetResponse
 

@@ -49,8 +49,8 @@ object PayWithMonaSdk {
         )
     }
 
-    suspend fun consentCollection(collection: Collection, activity: FragmentActivity) {
-        instance.consentCollection(collection, activity)
+    suspend fun consentCollection(collection: Collection, activity: FragmentActivity): Collection? {
+        return instance.consentCollection(collection, activity)
     }
 
     suspend fun reset() {

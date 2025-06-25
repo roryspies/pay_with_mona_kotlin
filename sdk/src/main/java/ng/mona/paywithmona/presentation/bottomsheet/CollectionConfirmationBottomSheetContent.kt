@@ -17,17 +17,21 @@ import ng.mona.paywithmona.data.model.Collection
 import ng.mona.paywithmona.data.model.CollectionSchedule
 import ng.mona.paywithmona.data.model.CollectionScheduleEntry
 import ng.mona.paywithmona.data.model.CollectionType
+import ng.mona.paywithmona.domain.PaymentMethod
+import ng.mona.paywithmona.presentation.shared.CollectionPaymentItem
 import ng.mona.paywithmona.presentation.shared.SdkButton
+import ng.mona.paywithmona.presentation.theme.SdkColors
 import ng.mona.paywithmona.presentation.theme.SdkTheme
 
 @Composable
 internal fun CollectionConfirmationBottomSheetContent(
     collection: Collection,
     merchantName: String,
-    success: Boolean,
+    method: PaymentMethod.SavedInfo?,
     modifier: Modifier = Modifier,
     onContinue: () -> Unit
 ) {
+    val success = method != null
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -53,8 +57,24 @@ internal fun CollectionConfirmationBottomSheetContent(
                 color = Color(0xFF666666)
             )
 
+            if (method != null) {
+                Text(
+                    modifier = Modifier.padding(top = 24.dp, bottom = 6.dp).fillMaxWidth(),
+                    text = "Payment account",
+                    fontSize = 12.sp,
+                    color = SdkColors.neutral400
+                )
+                CollectionPaymentItem(
+                    method = method,
+                    selected = null
+                )
+            }
+
             CollectionDetailsGrid(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                modifier = Modifier.fillMaxWidth().padding(
+                    top = if (success) 16.dp else 24.dp,
+                    bottom = 24.dp
+                ),
                 merchantName = merchantName,
                 collection = collection
             )
@@ -88,7 +108,7 @@ private fun CollectionConfirmationBottomSheetContentPreview() = SdkTheme {
             ),
             reference = "REF12345"
         ),
-        success = false,
+        method = null,
         onContinue = {
 
         }
@@ -115,7 +135,7 @@ private fun CollectionSuccessBottomSheetContentPreview() = SdkTheme {
             ),
             reference = "REF12345"
         ),
-        success = true,
+        method = PaymentMethod.SavedInfo(),
         onContinue = {
 
         }

@@ -17,7 +17,8 @@ data class Collection(
     val lastCollectedAt: String? = null,
     val nextCollectionAt: String? = null,
     val debitType: String? = null,
-    val loanLinkToken: String? = null
+    val loanLinkToken: String? = null,
+    val bankId: String? = null,
 )
 
 @Serializable

@@ -132,7 +132,7 @@ internal class BottomSheetHandler(
                 Header(
                     showCancelButton = when (content) {
                         BottomSheetContent.CheckoutInitiated,
-                        BottomSheetContent.CollectionSuccess,
+                        is BottomSheetContent.CollectionSuccess,
                         BottomSheetContent.CheckoutFailure,
                         BottomSheetContent.Loading -> false
 
@@ -237,7 +237,7 @@ internal class BottomSheetHandler(
                             is BottomSheetContent.CollectionConfirmation -> CollectionConfirmationBottomSheetContent(
                                 merchantName = current.merchantName,
                                 collection = current.collection,
-                                success = false,
+                                method = null,
                                 onContinue = {
                                     updateResponse(BottomSheetResponse.ToCollectionAccountSelection)
                                 }
@@ -247,16 +247,27 @@ internal class BottomSheetHandler(
                                 merchantName = current.merchantName,
                                 collection = current.collection,
                                 paymentOptions = current.paymentOptions,
-                                onContinue = { approved ->
+                                onContinue = { selectedMethod ->
                                     updateResponse(
-                                        when (approved) {
-                                            true -> BottomSheetResponse.ApproveCollectionDebiting
-                                            else -> BottomSheetResponse.Dismissed
+                                        when (selectedMethod) {
+                                            null -> BottomSheetResponse.Dismissed
+                                            else -> BottomSheetResponse.ApproveCollectionDebiting(
+                                                selectedMethod
+                                            )
                                         }
                                     )
                                 },
                                 onAddAccount = {
                                     updateResponse(BottomSheetResponse.AddBankAccount)
+                                }
+                            )
+
+                            is BottomSheetContent.CollectionSuccess -> CollectionConfirmationBottomSheetContent(
+                                merchantName = current.merchantName,
+                                collection = current.collection,
+                                method = current.method,
+                                onContinue = {
+                                    updateResponse(BottomSheetResponse.Dismissed)
                                 }
                             )
 
