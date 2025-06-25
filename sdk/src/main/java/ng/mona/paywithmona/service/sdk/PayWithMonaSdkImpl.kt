@@ -118,6 +118,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     val transactionState = MutableStateFlow<TransactionState>(TransactionState.Idle)
 
+    val paymentOptions = state.paymentOptions
+
     init {
         scope.launch {
             if (Timber.forest().isEmpty()) {
