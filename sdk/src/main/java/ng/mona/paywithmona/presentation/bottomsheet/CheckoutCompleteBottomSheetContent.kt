@@ -15,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,7 +41,7 @@ internal fun CheckoutCompleteBottomSheetContent(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .border(0.5.dp, Color(0xFFE7E8E6), CircleShape)
+                    .border(0.5.dp, SdkColors.neutral50, CircleShape)
                     .padding(8.dp)
                     .background(
                         when (success) {

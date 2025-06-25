@@ -23,3 +23,13 @@ internal val PaymentMethod.type: PaymentMethodType
         PaymentMethod.PayByTransfer -> PaymentMethodType.Transfer
         PaymentMethod.PayWithCard -> PaymentMethodType.Card
     }
+
+internal val PaymentMethod.SavedInfo.logo: String?
+    get() = bank?.logo ?: card?.logo
+
+internal val PaymentMethod.SavedInfo.name: String?
+    get() = bank?.name ?: card?.bankName
+
+
+internal val PaymentMethod.SavedInfo.number: String?
+    get() = bank?.accountNumber ?: card?.accountNumber

@@ -1,4 +1,4 @@
-package ng.mona.paywithmona.presentation
+package ng.mona.paywithmona.presentation.shared
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +31,9 @@ import ng.mona.paywithmona.R
 import ng.mona.paywithmona.data.model.Bank
 import ng.mona.paywithmona.data.model.Card
 import ng.mona.paywithmona.domain.PaymentMethod
+import ng.mona.paywithmona.domain.logo
+import ng.mona.paywithmona.domain.name
+import ng.mona.paywithmona.domain.number
 import ng.mona.paywithmona.presentation.theme.SdkColors
 import ng.mona.paywithmona.presentation.theme.SdkTheme
 
@@ -92,8 +95,8 @@ internal fun PaymentMethodItem(
                     Box(
                         content = {
                             AsyncImage(
-                                model = (entry.bank?.logo ?: entry.card?.logo),
-                                contentDescription = entry.bank?.name ?: entry.card?.bankName,
+                                model = entry.logo,
+                                contentDescription = entry.name,
                                 modifier = Modifier.size(36.dp),
                             )
                             Icon(
@@ -114,9 +117,7 @@ internal fun PaymentMethodItem(
                 content = {
                     Text(
                         text = when (entry) {
-                            is PaymentMethod.SavedInfo -> entry.bank?.name
-                                ?: entry.card?.bankName ?: stringResource(R.string.n_a)
-
+                            is PaymentMethod.SavedInfo -> entry.name ?: stringResource(R.string.n_a)
                             PaymentMethod.PayByTransfer -> stringResource(R.string.pay_by_transfer)
                             PaymentMethod.PayWithCard -> stringResource(R.string.pay_with_card)
                         },
@@ -138,11 +139,8 @@ internal fun PaymentMethodItem(
                             }
                             Text(
                                 text = when (entry) {
-                                    is PaymentMethod.SavedInfo -> leading + (
-                                            entry.bank?.accountNumber
-                                                ?: entry.card?.accountNumber
-                                                ?: stringResource(R.string.n_a)
-                                            )
+                                    is PaymentMethod.SavedInfo -> leading + (entry.number
+                                        ?: stringResource(R.string.n_a))
 
                                     PaymentMethod.PayByTransfer -> stringResource(R.string.pay_by_transfer_desc)
                                     PaymentMethod.PayWithCard -> stringResource(R.string.pay_with_card_desc)

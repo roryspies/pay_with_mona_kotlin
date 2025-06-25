@@ -48,6 +48,7 @@ import ng.mona.paywithmona.service.bottomsheet.BottomSheetResponse
 import ng.mona.paywithmona.service.sse.FirebaseSseListener
 import ng.mona.paywithmona.service.sse.SseListenerType
 import timber.log.Timber
+import java.security.SecureRandom
 
 internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     private var activity: FragmentActivity? = null
@@ -202,9 +203,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             activity
         )
 
-        val response = bottomSheet.response.first()
-        if (response != BottomSheetResponse.ToCollectionAccountSelection) {
-            Timber.e("Collection consent was not granted: $response")
+        if (bottomSheet.response.first() != BottomSheetResponse.ToCollectionAccountSelection) {
+            Timber.e("Collection consent was not granted")
             return
         }
 
@@ -218,14 +218,44 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
             val key = storage.keyId.first()
             if (key.isNullOrBlank()) {
-                val response = initiateKeyExchange(product = MonaProduct.Collections)
-                if (!response) {
+                if (!initiateKeyExchange(product = MonaProduct.Collections)) {
                     Timber.e("Key exchange failed or was declined")
                     return
                 }
             }
 
             validatePii()
+
+            bottomSheet.show(
+                BottomSheetContent.CollectionAccountSelection(
+                    merchantName = merchantName.orEmpty(),
+                    collection = collection,
+                    paymentOptions = state.paymentOptions.value,
+                ),
+                activity
+            )
+
+            do {
+                when (bottomSheet.response.first()) {
+                    BottomSheetResponse.ApproveCollectionDebiting -> {
+
+                    }
+
+                    BottomSheetResponse.AddBankAccount -> {
+                        launchUrl(
+                            UrlBuilder.addAccount(
+                                MonaProduct.Checkout,
+                                collection.id.orEmpty()
+                            )
+                        )
+                    }
+
+                    else -> {
+                        Timber.e("Collection debiting was not approved")
+                        return
+                    }
+                }
+            } while (true)
         } catch (e: Exception) {
             handleError(e, SdkState.Idle)
         } finally {
@@ -314,7 +344,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                 }
 
                 else -> {
-                    val sessionId = checkout.generateSessionId()
+                    val sessionId = generateSessionId()
                     val url = UrlBuilder(
                         sessionId = sessionId,
                         merchantKey = getMerchantKey(),
@@ -359,7 +389,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         withRedirect: Boolean = true,
         product: MonaProduct = MonaProduct.Checkout,
     ): Boolean {
-        val sessionId = checkout.generateSessionId()
+        val sessionId = generateSessionId()
         val url = UrlBuilder(
             sessionId = sessionId,
             merchantKey = getMerchantKey(),
@@ -454,6 +484,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
         successful
     }
+
+    private fun generateSessionId() = SecureRandom().nextInt(999_999_999).toString()
 
     private fun launchUrl(url: String) = scope.launch(Dispatchers.Main) {
         customTabsConnection.launch(

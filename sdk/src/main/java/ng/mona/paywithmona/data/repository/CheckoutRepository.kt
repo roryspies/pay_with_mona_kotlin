@@ -32,7 +32,6 @@ import ng.mona.paywithmona.util.base64
 import ng.mona.paywithmona.util.toJsonObject
 import timber.log.Timber
 import java.security.MessageDigest
-import java.security.SecureRandom
 import java.util.UUID
 
 internal class CheckoutRepository private constructor(
@@ -206,8 +205,6 @@ internal class CheckoutRepository private constructor(
             }
         }
     }
-
-    fun generateSessionId() = SecureRandom().nextInt(999_999_999).toString()
 
     companion object : SingletonCompanionWithDependency<CheckoutRepository, Context>() {
         override fun createInstance(dependency: Context) = CheckoutRepository(dependency)

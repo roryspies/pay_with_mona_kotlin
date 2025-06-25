@@ -1,9 +1,7 @@
 package ng.mona.paywithmona.presentation.bottomsheet
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +33,7 @@ import ng.mona.paywithmona.data.model.Collection
 import ng.mona.paywithmona.data.model.CollectionSchedule
 import ng.mona.paywithmona.data.model.CollectionScheduleEntry
 import ng.mona.paywithmona.data.model.CollectionType
+import ng.mona.paywithmona.presentation.shared.ExpandHeader
 import ng.mona.paywithmona.presentation.theme.SdkColors
 import ng.mona.paywithmona.presentation.theme.SdkTheme
 import ng.mona.paywithmona.util.capitalize
@@ -47,22 +42,28 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+internal enum class CollectionDetailsGridState {
+    Collapsed,
+    AutoExpanded,
+    Default
+}
+
 @Composable
 internal fun CollectionDetailsGrid(
     merchantName: String,
     collection: Collection,
     modifier: Modifier = Modifier,
-    autoExpandSchedule: Boolean = false,
+    state: CollectionDetailsGridState = CollectionDetailsGridState.Default
 ) {
     val isScheduled = remember(collection.schedule?.type) {
         collection.schedule?.type?.equals(CollectionType.Scheduled.name, true) == true
     }
-    var scheduleExpanded by remember(isScheduled, autoExpandSchedule) {
-        mutableStateOf(autoExpandSchedule)
+    var scheduleExpanded by remember(isScheduled, state) {
+        mutableStateOf(state == CollectionDetailsGridState.AutoExpanded)
     }
 
-    val entries = remember(merchantName, collection) {
-        buildList {
+    val entries = remember(merchantName, collection, state) {
+        val result = buildList {
             add(Triple(R.drawable.ic_person, "Debitor", merchantName))
             add(
                 Triple(
@@ -95,6 +96,10 @@ internal fun CollectionDetailsGrid(
                 add(Triple(R.drawable.ic_files, "Reference", it))
             }
         }.chunked(2)
+        when (state) {
+            CollectionDetailsGridState.Collapsed -> result.take(1)
+            else -> result
+        }
     }
 
     Column(
@@ -118,7 +123,7 @@ internal fun CollectionDetailsGrid(
                     }
                 )
             }
-            if (isScheduled && !collection.schedule?.entries.isNullOrEmpty()) {
+            if (isScheduled && state != CollectionDetailsGridState.Collapsed && !collection.schedule?.entries.isNullOrEmpty()) {
                 if (scheduleExpanded) {
                     Column(
                         modifier = Modifier
@@ -162,35 +167,13 @@ internal fun CollectionDetailsGrid(
                         }
                     )
                 }
-                if (!autoExpandSchedule) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable {
+                if (state != CollectionDetailsGridState.AutoExpanded) {
+                    ExpandHeader(
+                        modifier = Modifier.fillMaxWidth(),
+                        title = "Show repayments",
+                        expanded = scheduleExpanded,
+                        onToggle = {
                             scheduleExpanded = !scheduleExpanded
-                        },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        content = {
-                            Text(
-                                "Show repayments",
-                                fontWeight = FontWeight.W500,
-                                fontSize = 12.sp,
-                                color = SdkColors.neutral400,
-                                textDecoration = TextDecoration.Underline
-                            )
-                            AnimatedContent(
-                                targetState = scheduleExpanded,
-                                content = { scheduleExpanded ->
-                                    Icon(
-                                        modifier = Modifier.size(12.dp),
-                                        imageVector = when (scheduleExpanded) {
-                                            true -> Icons.Default.KeyboardArrowUp
-                                            false -> Icons.Default.KeyboardArrowDown
-                                        },
-                                        contentDescription = null,
-                                        tint = SdkColors.neutral400,
-                                    )
-                                }
-                            )
                         }
                     )
                 }
@@ -327,5 +310,22 @@ private fun CollectionWithScheduleDetailsGridPreview() = SdkTheme {
             reference = "REF12345"
         ),
         modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CollapsedCollectionScheduleDetailsGridPreview() = SdkTheme {
+    CollectionDetailsGrid(
+        modifier = Modifier.fillMaxWidth(),
+        merchantName = "John Doe",
+        collection = Collection(
+            id = "12345",
+            maxAmountInKobo = "100000",
+            startDate = "2023-01-01T00:00:00Z",
+            expiryDate = "2024-01-01T00:00:00Z",
+            reference = "REF12345"
+        ),
+        state = CollectionDetailsGridState.Collapsed
     )
 }

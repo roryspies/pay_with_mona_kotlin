@@ -38,7 +38,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -60,11 +59,13 @@ import ng.mona.paywithmona.event.TransactionState
 import ng.mona.paywithmona.presentation.bottomsheet.CheckoutCompleteBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.CheckoutConfirmationBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.CheckoutInitiatedBottomSheetContent
+import ng.mona.paywithmona.presentation.bottomsheet.CollectionAccountSelectionBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.CollectionConfirmationBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.KeyExchangeBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.LoadingBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.OtpInputBottomSheetContent
 import ng.mona.paywithmona.presentation.shared.PoweredByMona
+import ng.mona.paywithmona.presentation.theme.SdkColors
 import ng.mona.paywithmona.util.lighten
 import ng.mona.paywithmona.util.setNavigationBarColor
 
@@ -242,6 +243,23 @@ internal class BottomSheetHandler(
                                 }
                             )
 
+                            is BottomSheetContent.CollectionAccountSelection -> CollectionAccountSelectionBottomSheetContent(
+                                merchantName = current.merchantName,
+                                collection = current.collection,
+                                paymentOptions = current.paymentOptions,
+                                onContinue = { approved ->
+                                    updateResponse(
+                                        when (approved) {
+                                            true -> BottomSheetResponse.ApproveCollectionDebiting
+                                            else -> BottomSheetResponse.Dismissed
+                                        }
+                                    )
+                                },
+                                onAddAccount = {
+                                    updateResponse(BottomSheetResponse.AddBankAccount)
+                                }
+                            )
+
                             else -> {
                                 // no-op
                             }
@@ -288,7 +306,7 @@ internal class BottomSheetHandler(
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_close),
                                     contentDescription = "Dismiss",
-                                    tint = Color(0xFF090901),
+                                    tint = SdkColors.neutral900,
                                 )
                             }
                         )

@@ -11,5 +11,9 @@ internal sealed interface BottomSheetResponse {
 
     data object ToCollectionAccountSelection : BottomSheetResponse
 
+    data object ApproveCollectionDebiting : BottomSheetResponse
+
+    data object AddBankAccount : BottomSheetResponse
+
     data object Dismissed : BottomSheetResponse
 }

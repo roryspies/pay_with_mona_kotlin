@@ -1,5 +1,6 @@
 package ng.mona.paywithmona.service.sdk
 
+import ng.mona.paywithmona.data.model.MonaProduct
 import ng.mona.paywithmona.data.remote.ApiConfig
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.domain.PaymentType
@@ -53,5 +54,10 @@ internal object UrlBuilder {
                 "${ApiConfig.PAY_HOST}/login?$scope&transactionId=$encodedTransactionId$redirect"
             }
         }
+    }
+
+    fun addAccount(product: MonaProduct, id: String) = when (product) {
+        MonaProduct.Checkout -> "${ApiConfig.PAY_HOST}/checkout/enrollment?transactionId=${id.encodeUrl()}"
+        MonaProduct.Collections -> "${ApiConfig.PAY_HOST}/collections/enrollment?collectionId=${id.encodeUrl()}"
     }
 }

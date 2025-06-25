@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ng.mona.paywithmona.data.model.Bank
 import ng.mona.paywithmona.domain.PaymentMethod
-import ng.mona.paywithmona.presentation.PaymentMethodItem
-import ng.mona.paywithmona.presentation.PaymentMethodItemType
+import ng.mona.paywithmona.presentation.shared.PaymentMethodItem
+import ng.mona.paywithmona.presentation.shared.PaymentMethodItemType
 import ng.mona.paywithmona.presentation.shared.SdkButton
 import ng.mona.paywithmona.presentation.theme.SdkColors
 import ng.mona.paywithmona.presentation.theme.SdkTheme
