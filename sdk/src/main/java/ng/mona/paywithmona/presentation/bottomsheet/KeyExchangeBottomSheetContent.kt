@@ -63,7 +63,7 @@ internal fun KeyExchangeBottomSheetContent(
                         modifier = Modifier.padding(horizontal = 16.dp),
                         painter = painterResource(R.drawable.path_checkmark),
                         contentDescription = null,
-                        tint = Color(0xFFC6C7C3)
+                        tint = SdkColors.neutral100
                     )
                     MerchantLogo()
                 }

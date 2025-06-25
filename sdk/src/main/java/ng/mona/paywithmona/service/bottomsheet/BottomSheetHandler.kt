@@ -15,6 +15,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -26,7 +27,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -57,6 +60,7 @@ import ng.mona.paywithmona.event.TransactionState
 import ng.mona.paywithmona.presentation.bottomsheet.CheckoutCompleteBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.CheckoutConfirmationBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.CheckoutInitiatedBottomSheetContent
+import ng.mona.paywithmona.presentation.bottomsheet.CollectionConfirmationBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.KeyExchangeBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.LoadingBottomSheetContent
 import ng.mona.paywithmona.presentation.bottomsheet.OtpInputBottomSheetContent
@@ -122,6 +126,7 @@ internal class BottomSheetHandler(
                     )
                 ),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
             content = {
                 Header(
                     showCancelButton = when (content) {
@@ -135,8 +140,10 @@ internal class BottomSheetHandler(
                 )
                 AnimatedContent(
                     modifier = Modifier
-                        .padding(vertical = 20.dp, horizontal = 16.dp)
+                        .padding(horizontal = 16.dp)
                         .fillMaxWidth()
+                        .weight(1f, false)
+                        .verticalScroll(rememberScrollState())
                         .background(MaterialTheme.colorScheme.background)
                         .padding(16.dp),
                     contentAlignment = Alignment.Center,
@@ -223,6 +230,15 @@ internal class BottomSheetHandler(
                                             false
                                         )
                                     )
+                                }
+                            )
+
+                            is BottomSheetContent.CollectionConfirmation -> CollectionConfirmationBottomSheetContent(
+                                merchantName = current.merchantName,
+                                collection = current.collection,
+                                success = false,
+                                onContinue = {
+                                    updateResponse(BottomSheetResponse.ToCollectionAccountSelection)
                                 }
                             )
 

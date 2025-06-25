@@ -15,7 +15,6 @@ import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -156,11 +155,10 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                 is FragmentActivity -> {
                     activity = currentActivity
 
-                    val sdkState by sdkState.collectAsStateWithLifecycle(SdkState.Idle)
-                    val paymentOptions by state.paymentOptions.collectAsStateWithLifecycle()
-
                     LaunchedEffect(Unit) {
+                        sdkState.update { SdkState.Loading }
                         validatePii()
+                        sdkState.update { SdkState.Idle }
                     }
 
                     LaunchedEffect(checkout) {
@@ -170,6 +168,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                         }
                     }
 
+                    val sdkState by sdkState.collectAsStateWithLifecycle(SdkState.Idle)
+                    val paymentOptions by state.paymentOptions.collectAsStateWithLifecycle()
                     PaymentMethods(
                         paymentOptions,
                         modifier,
@@ -193,7 +193,45 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     )
 
     suspend fun consentCollection(collection: Collection, activity: FragmentActivity) {
+        val merchantName = merchantBranding.first()?.name ?: merchantBranding.first()?.tradingName
+        bottomSheet.show(
+            BottomSheetContent.CollectionConfirmation(
+                merchantName = merchantName.orEmpty(),
+                collection = collection
+            ),
+            activity
+        )
 
+        val response = bottomSheet.response.first()
+        if (response != BottomSheetResponse.ToCollectionAccountSelection) {
+            Timber.e("Collection consent was not granted: $response")
+            return
+        }
+
+        try {
+            this.activity = activity
+            sdkState.update { SdkState.Loading }
+            bottomSheet.show(BottomSheetContent.Loading, activity)
+
+            // Initialize SSE listener for real-time events
+            sse.initialize()
+
+            val key = storage.keyId.first()
+            if (key.isNullOrBlank()) {
+                val response = initiateKeyExchange(product = MonaProduct.Collections)
+                if (!response) {
+                    Timber.e("Key exchange failed or was declined")
+                    return
+                }
+            }
+
+            validatePii()
+        } catch (e: Exception) {
+            handleError(e, SdkState.Idle)
+        } finally {
+            resetInternalState(false)
+            this.activity = null
+        }
     }
 
     suspend fun reset() {
@@ -221,59 +259,13 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             try {
                 sseListener.subscribeToEvents(SseListenerType.PaymentUpdates)
                 sseListener.subscribeToEvents(SseListenerType.TransactionMessages)
+                sseListener.subscribeToEvents(SseListenerType.CustomTabs)
             } catch (_: Exception) {
 
             }
 
             val hasKey = !storage.keyId.first().isNullOrBlank()
             val isSavedPaymentMethod = method is PaymentMethod.SavedInfo
-
-            suspend fun pay() {
-                bottomSheet.show(BottomSheetContent.CheckoutConfirmation, activity)
-                if (bottomSheet.response.first() != BottomSheetResponse.Pay) {
-                    return
-                }
-                bottomSheet.show(BottomSheetContent.Loading, activity)
-                val response = checkout.makePayment(
-                    activity,
-                    state,
-                    bottomSheet
-                ) ?: return
-                state.checkout = state.checkout?.copy(
-                    friendlyId = response["friendlyID"]?.jsonPrimitive?.content
-                )
-                sdkState.update { SdkState.TransactionInitiated }
-                transactionState.update {
-                    TransactionState.Initiated(
-                        transactionId = response["transactionRef"]?.jsonPrimitive?.content,
-                        friendlyId = state.checkout?.friendlyId,
-                        amount = state.checkout?.transactionAmountInKobo
-                    )
-                }
-                bottomSheet.show(
-                    BottomSheetContent.CheckoutInitiated,
-                    activity,
-                )
-                // wait for the transaction to complete
-                val bottomSheetResponse = bottomSheet.response.first {
-                    it is BottomSheetResponse.CheckoutComplete || it is BottomSheetResponse.Dismissed
-                }
-                if (bottomSheetResponse is BottomSheetResponse.CheckoutComplete && bottomSheetResponse.success) {
-                    success = true
-                }
-            }
-
-            // If the user has a key and is using a saved payment method, just show confirmation
-            if (hasKey && isSavedPaymentMethod) {
-                return@launch pay()
-            }
-
-            // Listen for custom tab close events
-            try {
-                sseListener.subscribeToEvents(SseListenerType.CustomTabs)
-            } catch (_: Exception) {
-
-            }
 
             // If the user doesn't have a key and they want to use a saved payment method,
             // key exchange needs to be done, so handle first.
@@ -287,7 +279,39 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             }
 
             when (isSavedPaymentMethod) {
-                true -> pay()
+                true -> run {
+                    bottomSheet.show(BottomSheetContent.CheckoutConfirmation, activity)
+                    if (bottomSheet.response.first() != BottomSheetResponse.Pay) {
+                        return@run
+                    }
+                    bottomSheet.show(BottomSheetContent.Loading, activity)
+                    val response = checkout.makePayment(
+                        activity,
+                        state,
+                        bottomSheet
+                    ) ?: return@run
+                    state.checkout = state.checkout?.copy(
+                        friendlyId = response["friendlyID"]?.jsonPrimitive?.content
+                    )
+                    sdkState.update { SdkState.TransactionInitiated }
+                    transactionState.update {
+                        TransactionState.Initiated(
+                            transactionId = response["transactionRef"]?.jsonPrimitive?.content,
+                            friendlyId = state.checkout?.friendlyId,
+                            amount = state.checkout?.transactionAmountInKobo
+                        )
+                    }
+                    bottomSheet.show(
+                        BottomSheetContent.CheckoutInitiated,
+                        activity,
+                    )
+                    // wait for the transaction to complete
+                    val bottomSheetResponse = bottomSheet.response.first {
+                        it is BottomSheetResponse.CheckoutComplete || it is BottomSheetResponse.Dismissed
+                    }
+                    success =
+                        bottomSheetResponse is BottomSheetResponse.CheckoutComplete && bottomSheetResponse.success
+                }
 
                 else -> {
                     val sessionId = checkout.generateSessionId()
@@ -301,8 +325,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                             else -> PaymentType.DirectPaymentWithPossibleAuth
                         }
                     )
-                    async { sseListener.subscribeToAuthEvents(sessionId) }
                     launchUrl(url)
+                    sseListener.subscribeToAuthEvents(sessionId)
                 }
             }
         } catch (e: Exception) {
@@ -313,12 +337,12 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
         if (success) {
             transactionState.update {
-                val info = it as? TransactionState.WithInfo
+                val info = it as? TransactionState.WithInfo ?: return@update it
                 TransactionState.NavigateToResult(
-                    transactionId = info?.transactionId
+                    transactionId = info.transactionId
                         ?: state.checkout?.transactionId.orEmpty(),
-                    friendlyId = info?.friendlyId ?: state.checkout?.friendlyId.orEmpty(),
-                    amount = info?.amount ?: state.checkout?.transactionAmountInKobo ?: 0L,
+                    friendlyId = info.friendlyId ?: state.checkout?.friendlyId.orEmpty(),
+                    amount = info.amount ?: state.checkout?.transactionAmountInKobo ?: 0L,
                 )
             }
         }
@@ -348,42 +372,32 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             }
         )
         launchUrl(url)
-        return sseListener.subscribeToAuthEvents(sessionId)
+        return sseListener.subscribeToAuthEvents(sessionId, product)
     }
 
-    private suspend fun validatePii() {
-        try {
-            sdkState.update { SdkState.Loading }
+    private suspend fun validatePii() = runCatching {
+        val keyId = storage.keyId.first() ?: return@runCatching
 
-            val keyId = storage.keyId.first() ?: return
+        val response = auth.validatePii(keyId) ?: return@runCatching
 
-            val response = auth.validatePii(keyId) ?: return
+        val exists = response["exists"]?.jsonPrimitive?.booleanOrNull ?: false
+        // Non Mona User
+        if (!exists) {
+            return@runCatching authState.update { AuthState.NotAMonaUser }
+        }
 
-            val exists = response["exists"]?.jsonPrimitive?.booleanOrNull ?: false
-            // Non Mona User
-            if (!exists) {
-                return authState.update { AuthState.NotAMonaUser }
+        // This is a Mona user, update the payment options
+        state.paymentOptions.update {
+            Json.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
+        }
+
+        authState.update {
+            when (storage.keyId.first().isNullOrBlank()) {
+                // User has not done key exchange
+                true -> AuthState.LoggedOut
+                // User has done key exchange
+                false -> AuthState.LoggedIn
             }
-
-            // This is a Mona user, update the payment options
-            state.paymentOptions.update {
-                Json.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
-            }
-
-            if (storage.keyId.first().isNullOrBlank()) {
-                authState.update { AuthState.LoggedOut }
-            }
-
-            authState.update {
-                when (storage.keyId.first().isNullOrBlank()) {
-                    // User has not done key exchange
-                    true -> AuthState.LoggedOut
-                    // User has done key exchange
-                    false -> AuthState.LoggedIn
-                }
-            }
-        } finally {
-            sdkState.update { SdkState.Idle }
         }
     }
 
@@ -444,7 +458,9 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     private fun launchUrl(url: String) = scope.launch(Dispatchers.Main) {
         customTabsConnection.launch(
             url,
-            activity ?: return@launch,
+            activity ?: throw IllegalStateException(
+                "Activity is not set. Make sure to call sdk function within a FragmentActivity."
+            ),
             color = SdkColors.primary
         )
     }

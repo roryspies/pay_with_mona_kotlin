@@ -9,5 +9,7 @@ internal sealed interface BottomSheetResponse {
 
     data class CheckoutComplete(val success: Boolean) : BottomSheetResponse
 
+    data object ToCollectionAccountSelection : BottomSheetResponse
+
     data object Dismissed : BottomSheetResponse
 }

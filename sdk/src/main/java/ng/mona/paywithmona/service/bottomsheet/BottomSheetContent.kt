@@ -1,5 +1,7 @@
 package ng.mona.paywithmona.service.bottomsheet
 
+import ng.mona.paywithmona.data.model.Collection
+
 internal sealed interface BottomSheetContent {
     data class OtpInput(
         val title: String,
@@ -12,8 +14,11 @@ internal sealed interface BottomSheetContent {
     data object CheckoutSuccess : BottomSheetContent
     data object CheckoutFailure : BottomSheetContent
     data object CheckoutConfirmation : BottomSheetContent
+    data class CollectionConfirmation(
+        val merchantName: String,
+        val collection: Collection
+    ) : BottomSheetContent
     data object CollectionAccountSelection : BottomSheetContent
     data object CollectionSuccess : BottomSheetContent
-    data object CollectionConfirmation : BottomSheetContent
     data object Loading : BottomSheetContent
 }
