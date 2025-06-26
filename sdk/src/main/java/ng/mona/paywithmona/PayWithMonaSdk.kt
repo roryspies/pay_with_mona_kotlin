@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import ng.mona.paywithmona.data.model.Checkout
 import ng.mona.paywithmona.data.model.Collection
@@ -35,7 +36,7 @@ object PayWithMonaSdk {
     val sdkState: StateFlow<SdkState>
         get() = instance.sdkState
 
-    val transactionState: StateFlow<TransactionState>
+    val transactionState: SharedFlow<TransactionState>
         get() = instance.transactionState
 
     val paymentOptions: StateFlow<PaymentOptions?>

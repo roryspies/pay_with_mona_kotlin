@@ -17,12 +17,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -88,7 +88,9 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         BottomSheetHandler(
             scope = scope,
             state = { state },
-            transactionState = { transactionState },
+            transactionState = {
+                transactionState.collectAsStateWithLifecycle(lastTransactionState)
+            },
         )
     }
 
@@ -100,9 +102,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             closeCustomTabs = {
                 customTabsConnection.close(activity)
             },
-            updateTransactionState = { transactionState ->
-                this.transactionState.update { transactionState }
-            },
+            updateTransactionState = ::updateTransactionState,
             updateSdkState = { sdkState ->
                 this.sdkState.update { sdkState }
             },
@@ -119,7 +119,10 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     val sdkState = MutableStateFlow(SdkState.Idle)
 
-    val transactionState = MutableStateFlow<TransactionState>(TransactionState.Idle)
+    val transactionState = MutableSharedFlow<TransactionState>(replay = 0)
+
+    // Keep track of the last transaction state for internal use
+    private var lastTransactionState: TransactionState = TransactionState.Idle
 
     val paymentOptions = state.paymentOptions
 
@@ -387,13 +390,13 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                         friendlyId = response["friendlyID"]?.jsonPrimitive?.content
                     )
                     sdkState.update { SdkState.TransactionInitiated }
-                    transactionState.update {
+                    updateTransactionState(
                         TransactionState.Initiated(
                             transactionId = response["transactionRef"]?.jsonPrimitive?.content,
                             friendlyId = state.checkout?.friendlyId,
                             amount = state.checkout?.transactionAmountInKobo
                         )
-                    }
+                    )
                     bottomSheet.show(
                         BottomSheetContent.CheckoutInitiated,
                         activity,
@@ -433,15 +436,15 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         }
 
         if (success) {
-            transactionState.update {
-                val info = it as? TransactionState.WithInfo ?: return@update it
+            val info = lastTransactionState as? TransactionState.WithInfo ?: return@launch
+            updateTransactionState(
                 TransactionState.NavigateToResult(
                     transactionId = info.transactionId
                         ?: state.checkout?.transactionId.orEmpty(),
                     friendlyId = info.friendlyId ?: state.checkout?.friendlyId.orEmpty(),
                     amount = info.amount ?: state.checkout?.transactionAmountInKobo ?: 0L,
                 )
-            }
+            )
         }
     }
 
@@ -576,5 +579,12 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         bottomSheet.dismiss()
         customTabsConnection.close(activity)
         sse.stopAllListening()
+    }
+
+    private fun updateTransactionState(newState: TransactionState) {
+        lastTransactionState = newState
+        scope.launch {
+            transactionState.emit(newState)
+        }
     }
 }

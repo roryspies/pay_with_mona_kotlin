@@ -37,8 +37,15 @@ internal class SseListener(
                 when (type) {
                     SseListenerType.CustomTabs -> {
                         if (response["success"]?.jsonPrimitive?.booleanOrNull == true) {
+                            val state = state()
                             updateSdkState(SdkState.Idle)
-                            updateTransactionState(TransactionState.NavigateToResult())
+                            updateTransactionState(
+                                TransactionState.NavigateToResult(
+                                    friendlyId = state.checkout?.friendlyId,
+                                    transactionId = state.checkout?.transactionId,
+                                    amount = state.checkout?.transactionAmountInKobo,
+                                )
+                            )
                             closeCustomTabs()
                         }
                     }

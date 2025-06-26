@@ -34,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,7 +73,7 @@ import ng.mona.paywithmona.util.setNavigationBarColor
 internal class BottomSheetHandler(
     private val scope: CoroutineScope,
     private val state: () -> PayWithMonaSdkState,
-    private val transactionState: () -> StateFlow<TransactionState>,
+    private val transactionState: @Composable () -> State<TransactionState>,
 ) {
     private val content = MutableStateFlow<BottomSheetContent?>(null)
     private var fragment: DialogFragment? = null
@@ -186,11 +187,11 @@ internal class BottomSheetHandler(
                             )
 
                             BottomSheetContent.CheckoutInitiated -> {
-                                val state by transactionState().collectAsStateWithLifecycle()
+                                val state = transactionState()
                                 CheckoutInitiatedBottomSheetContent(
-                                    state,
+                                    state.value,
                                     onDone = {
-                                        when (state) {
+                                        when (state.value) {
                                             is TransactionState.Completed -> show(BottomSheetContent.CheckoutSuccess)
                                             is TransactionState.Failed -> show(BottomSheetContent.CheckoutFailure)
                                             else -> {
