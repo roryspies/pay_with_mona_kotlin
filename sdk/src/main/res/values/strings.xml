@@ -7,4 +7,5 @@
     <string name="card">Card</string>
     <string name="pay_by_transfer_desc">Pay for your order with bank transfer</string>
     <string name="pay_with_card_desc">Visa, Verve and Mastercard accepted</string>
+    <string name="active_in">Active in %1$d hours</string>
 </resources>

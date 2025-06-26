@@ -36,5 +36,8 @@ data class Bank(
     val manualPaymentRequired: Boolean = false,
 
     @SerialName("hasInstantPay")
-    val hasInstantPay: Boolean = false
+    val hasInstantPay: Boolean = false,
+
+    @SerialName("activeIn")
+    val activeIn: Int? = null
 )

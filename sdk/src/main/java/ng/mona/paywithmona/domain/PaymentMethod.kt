@@ -36,3 +36,6 @@ internal val PaymentMethod.SavedInfo.number: String?
 
 internal val PaymentMethod.SavedInfo.id: String?
     get() = bank?.id ?: card?.bankId
+
+internal val PaymentMethod.SavedInfo.activeIn: Int?
+    get() = bank?.activeIn ?: card?.activeIn

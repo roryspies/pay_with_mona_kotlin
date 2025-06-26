@@ -1,5 +1,6 @@
 package ng.mona.paywithmona.data.model
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -9,5 +10,6 @@ data class Card(
     val accountNumber: String? = null,
     val bankName: String? = null,
     val accountName: String? = null,
-    val logo: String? = null
+    val logo: String? = null,
+    val activeIn: Int? = null
 )

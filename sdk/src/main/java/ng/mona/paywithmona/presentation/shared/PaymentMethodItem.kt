@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -19,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -31,6 +33,7 @@ import ng.mona.paywithmona.R
 import ng.mona.paywithmona.data.model.Bank
 import ng.mona.paywithmona.data.model.Card
 import ng.mona.paywithmona.domain.PaymentMethod
+import ng.mona.paywithmona.domain.activeIn
 import ng.mona.paywithmona.domain.logo
 import ng.mona.paywithmona.domain.name
 import ng.mona.paywithmona.domain.number
@@ -50,10 +53,15 @@ internal fun PaymentMethodItem(
     type: PaymentMethodItemType,
     onClick: () -> Unit,
 ) {
+    val activeIn = when (entry) {
+        is PaymentMethod.SavedInfo -> entry.activeIn
+        else -> null
+    }
+
     Row(
         modifier = modifier.then(
-            when (type) {
-                PaymentMethodItemType.Methods -> Modifier.clickable(
+            when {
+                type == PaymentMethodItemType.Methods && activeIn == null -> Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = onClick,
@@ -97,17 +105,24 @@ internal fun PaymentMethodItem(
                             AsyncImage(
                                 model = entry.logo,
                                 contentDescription = entry.name,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(36.dp).then(
+                                    when (activeIn) {
+                                        null -> Modifier
+                                        else -> Modifier.alpha(0.2f)
+                                    }
+                                ),
                             )
-                            Icon(
-                                modifier = Modifier.align(Alignment.BottomEnd)
-                                    .background(SdkColors.white, CircleShape)
-                                    .padding(2.dp)
-                                    .size(10.dp),
-                                painter = painterResource(if (entry.bank != null) R.drawable.ic_bank_bold else R.drawable.ic_cards),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
+                            if (activeIn == null) {
+                                Icon(
+                                    modifier = Modifier.align(Alignment.BottomEnd)
+                                        .background(SdkColors.white, CircleShape)
+                                        .padding(2.dp)
+                                        .size(10.dp),
+                                    painter = painterResource(if (entry.bank != null) R.drawable.ic_bank_bold else R.drawable.ic_cards),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            }
                         }
                     )
                 }
@@ -155,14 +170,26 @@ internal fun PaymentMethodItem(
                     )
                 }
             )
-            when (type) {
-                PaymentMethodItemType.Methods -> RadioButton(
+            when {
+                activeIn != null -> {
+                    Text(
+                        modifier = Modifier.background(
+                            SdkColors.neutral50,
+                            RoundedCornerShape(8.dp)
+                        ).padding(vertical = 4.dp, horizontal = 8.dp),
+                        text = stringResource(id = R.string.active_in, activeIn),
+                        fontSize = 12.sp,
+                        color = SdkColors.neutral100
+                    )
+                }
+
+                type == PaymentMethodItemType.Methods -> RadioButton(
                     selected = selected,
                     onClick = null,
                     colors = RadioButtonDefaults.colors(unselectedColor = Color(0xFFF2F2F3))
                 )
 
-                PaymentMethodItemType.Confirmation -> Row(
+                type == PaymentMethodItemType.Confirmation -> Row(
                     modifier = Modifier.clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
