@@ -15,6 +15,8 @@ import io.ktor.client.plugins.ClientRequestException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -79,7 +81,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
     private var state = PayWithMonaSdkState()
 
     private val customTabsConnection by lazy {
-        CustomTabsConnection(context)
+        CustomTabsConnection()
     }
 
     private val bottomSheet by lazy {
@@ -210,7 +212,8 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
             val data = collection.fetchCollection(id)
 
-            val merchantName = merchantBranding.first()?.name ?: merchantBranding.first()?.tradingName
+            val merchantName =
+                merchantBranding.first()?.name ?: merchantBranding.first()?.tradingName
             bottomSheet.show(
                 BottomSheetContent.CollectionConfirmation(
                     merchantName = merchantName.orEmpty(),
@@ -415,8 +418,12 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                             else -> PaymentType.DirectPaymentWithPossibleAuth
                         }
                     )
-                    launchUrl(url)
-                    sseListener.subscribeToAuthEvents(sessionId)
+                    val openCustomTab = async { launchUrl(url) }
+                    val keyExchange = async { sseListener.subscribeToAuthEvents(sessionId) }
+                    openCustomTab.await()
+                    if (authState.value == AuthState.PerformingLogin) {
+                        keyExchange.await()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -448,7 +455,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         method: PaymentMethod? = null,
         withRedirect: Boolean = true,
         product: MonaProduct = MonaProduct.Checkout,
-    ): Boolean {
+    ): Boolean = coroutineScope {
         val sessionId = generateSessionId()
         val url = UrlBuilder(
             sessionId = sessionId,
@@ -461,8 +468,14 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                 else -> null
             }
         )
-        launchUrl(url)
-        return sseListener.subscribeToAuthEvents(sessionId, product)
+
+        val openCustomTab = async { launchUrl(url) }
+        val keyExchange = async { sseListener.subscribeToAuthEvents(sessionId, product) }
+        openCustomTab.await()
+        when (authState.value) {
+            AuthState.PerformingLogin -> keyExchange.await()
+            else -> false
+        }
     }
 
     private suspend fun performAuth(
@@ -521,15 +534,13 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     private fun generateSessionId() = SecureRandom().nextInt(999_999_999).toString()
 
-    private fun launchUrl(url: String) = scope.launch(Dispatchers.Main) {
-        customTabsConnection.launch(
-            url,
-            activity ?: throw IllegalStateException(
-                "Activity is not set. Make sure to call sdk function within a FragmentActivity."
-            ),
-            color = SdkColors.primary
-        )
-    }
+    private suspend fun launchUrl(url: String) = customTabsConnection.launch(
+        url,
+        activity ?: throw IllegalStateException(
+            "Activity is not set. Make sure to call sdk function within a FragmentActivity."
+        ),
+        color = SdkColors.primary
+    )
 
     private fun handleError(error: Throwable, state: SdkState = SdkState.Error) {
         scope.launch {
