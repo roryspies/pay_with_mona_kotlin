@@ -3,14 +3,21 @@ package ng.mona.paywithmona.data.repository
 import android.content.Context
 import androidx.fragment.app.FragmentActivity
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonPrimitive
 import ng.mona.paywithmona.data.local.SdkStorage
+import ng.mona.paywithmona.data.model.Collection
 import ng.mona.paywithmona.data.remote.httpClient
+import ng.mona.paywithmona.data.serializer.SdkJson
 import ng.mona.paywithmona.domain.SingletonCompanionWithDependency
 import ng.mona.paywithmona.service.biometric.BiometricPromptConfig
 import ng.mona.paywithmona.service.biometric.BiometricService
@@ -27,6 +34,18 @@ internal class CollectionRepository private constructor(
         SdkStorage.getInstance(context)
     }
 
+    suspend fun fetchCollection(id: String): Collection {
+        val response: JsonObject = httpClient.get("collections/$id") {
+            header("x-public-key", storage.merchantKey.first())
+        }.body()
+        if (response["success"]?.jsonPrimitive?.booleanOrNull == true) {
+            return SdkJson.decodeFromJsonElement(response["data"]!!)
+        }
+        throw Exception(
+            response["message"]?.jsonPrimitive?.contentOrNull ?: "Failed to fetch collection"
+        )
+    }
+
     suspend fun consentCollection(
         bankId: String,
         accessRequestId: String,
@@ -37,8 +56,6 @@ internal class CollectionRepository private constructor(
             "bankId" to bankId,
             "accessRequestId" to accessRequestId
         )
-
-        Timber.i("REQUESTING TO SIGN COLLECTION CONSENT ==>> PAY LOAD TO BE SIGNED ==>> $payload")
 
         val nonce = UUID.randomUUID().toString()
         val timestamp = System.currentTimeMillis().toString()
@@ -54,6 +71,7 @@ internal class CollectionRepository private constructor(
         val hash = MessageDigest.getInstance("SHA-256")
             .digest(Json.encodeToString(data).base64().toByteArray())
             .joinToString("") { "%02x".format(it) }
+
         val signature = try {
             activity?.let {
                 BiometricService.createSignature(

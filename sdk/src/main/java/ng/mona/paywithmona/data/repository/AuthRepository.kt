@@ -19,6 +19,7 @@ import ng.mona.paywithmona.data.local.SdkStorage
 import ng.mona.paywithmona.data.model.MerchantBranding
 import ng.mona.paywithmona.data.remote.disableContentTypeKey
 import ng.mona.paywithmona.data.remote.httpClient
+import ng.mona.paywithmona.data.serializer.SdkJson
 import ng.mona.paywithmona.domain.SingletonCompanionWithDependency
 import ng.mona.paywithmona.service.biometric.BiometricPromptConfig
 import ng.mona.paywithmona.service.biometric.BiometricService
@@ -102,7 +103,7 @@ internal class AuthRepository private constructor(
                 header("x-public-key", merchantKey)
             }.body()
             val branding = response["data"]?.let {
-                Json.decodeFromJsonElement<MerchantBranding>(it)
+                SdkJson.decodeFromJsonElement<MerchantBranding>(it)
             }
 
             storage.setMerchantKey(merchantKey)

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import ng.mona.paywithmona.data.model.MerchantBranding
+import ng.mona.paywithmona.data.serializer.SdkJson
 import ng.mona.paywithmona.domain.SingletonCompanionWithDependency
 
 internal class SdkStorage(
@@ -22,7 +23,7 @@ internal class SdkStorage(
         key = MERCHANT_BRANDING,
         defaultValue = null
     ).map { value ->
-        value?.let { Json.decodeFromString<MerchantBranding>(it) }
+        value?.let { SdkJson.decodeFromString<MerchantBranding>(it) }
     }
 
     val hasPasskey = store.getSecurePreference<String>(HAS_PASSKEY).map {

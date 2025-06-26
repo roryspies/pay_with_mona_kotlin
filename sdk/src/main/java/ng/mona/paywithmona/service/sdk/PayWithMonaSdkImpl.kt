@@ -34,6 +34,7 @@ import ng.mona.paywithmona.data.model.MonaProduct
 import ng.mona.paywithmona.data.repository.AuthRepository
 import ng.mona.paywithmona.data.repository.CheckoutRepository
 import ng.mona.paywithmona.data.repository.CollectionRepository
+import ng.mona.paywithmona.data.serializer.SdkJson
 import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.domain.PaymentMethod
 import ng.mona.paywithmona.domain.PaymentType
@@ -201,25 +202,27 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
         }
     )
 
-    suspend fun consentCollection(collection: Collection, activity: FragmentActivity): Collection? {
-        val merchantName = merchantBranding.first()?.name ?: merchantBranding.first()?.tradingName
-        bottomSheet.show(
-            BottomSheetContent.CollectionConfirmation(
-                merchantName = merchantName.orEmpty(),
-                collection = collection
-            ),
-            activity
-        )
-
-        if (bottomSheet.response.first() != BottomSheetResponse.ToCollectionAccountSelection) {
-            Timber.e("Collection consent was not granted")
-            return null
-        }
-
+    suspend fun consentCollection(id: String, activity: FragmentActivity): Collection? {
         try {
             this.activity = activity
             sdkState.update { SdkState.Loading }
             bottomSheet.show(BottomSheetContent.Loading, activity)
+
+            val data = collection.fetchCollection(id)
+
+            val merchantName = merchantBranding.first()?.name ?: merchantBranding.first()?.tradingName
+            bottomSheet.show(
+                BottomSheetContent.CollectionConfirmation(
+                    merchantName = merchantName.orEmpty(),
+                    collection = data
+                ),
+                activity
+            )
+
+            if (bottomSheet.response.first() != BottomSheetResponse.ToCollectionAccountSelection) {
+                Timber.e("Collection consent was not granted")
+                return null
+            }
 
             // Initialize SSE listener for real-time events
             sse.initialize()
@@ -237,7 +240,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
             bottomSheet.show(
                 BottomSheetContent.CollectionAccountSelection(
                     merchantName = merchantName.orEmpty(),
-                    collection = collection,
+                    collection = data,
                     paymentOptions = state.paymentOptions.value,
                 ),
                 activity
@@ -255,7 +258,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
                         launchUrl(
                             UrlBuilder.addAccount(
                                 MonaProduct.Checkout,
-                                collection.id.orEmpty()
+                                id
                             )
                         )
                     }
@@ -269,21 +272,21 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
             bottomSheet.show(BottomSheetContent.Loading, activity)
 
-            this@PayWithMonaSdkImpl.collection.consentCollection(
+            collection.consentCollection(
                 method.id ?: return null,
-                collection.id ?: return null,
+                id,
                 activity
             ) ?: return null
 
             bottomSheet.show(
-                BottomSheetContent.CollectionSuccess(merchantName.orEmpty(), collection, method),
+                BottomSheetContent.CollectionSuccess(merchantName.orEmpty(), data, method),
                 activity
             )
 
             // wait for a response from the bottom sheet first before continuing
             bottomSheet.response.first()
 
-            return collection.copy(
+            return data.copy(
                 bankId = method.id,
             )
         } catch (e: Exception) {
@@ -308,7 +311,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
         // This is a Mona user, update the payment options
         state.paymentOptions.update {
-            Json.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
+            SdkJson.decodeFromJsonElement(response["savedPaymentOptions"] ?: return@update it)
         }
 
         authState.update {

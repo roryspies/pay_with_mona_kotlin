@@ -8,6 +8,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import ng.mona.paywithmona.data.model.MonaProduct
+import ng.mona.paywithmona.data.serializer.SdkJson
 import ng.mona.paywithmona.domain.PayWithMonaSdkState
 import ng.mona.paywithmona.event.SdkState
 import ng.mona.paywithmona.event.TransactionState
@@ -32,7 +33,7 @@ internal class SseListener(
                 else -> null
             },
             onDataChange = {
-                val response = Json.decodeFromString<JsonObject>(it)
+                val response = SdkJson.decodeFromString<JsonObject>(it)
                 when (type) {
                     SseListenerType.CustomTabs -> {
                         if (response["success"]?.jsonPrimitive?.booleanOrNull == true) {
@@ -109,7 +110,7 @@ internal class SseListener(
             identifier = sessionId,
             onDataChange = { event ->
                 if (event.contains("strongAuthToken")) {
-                    val data = Json.decodeFromString<JsonObject>(event)
+                    val data = SdkJson.decodeFromString<JsonObject>(event)
                     val token = data["strongAuthToken"]?.jsonPrimitive?.content
 
                     CoroutineScope(cont.context).launch {

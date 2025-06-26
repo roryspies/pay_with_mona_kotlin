@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+import ng.mona.paywithmona.data.serializer.SdkJson
 import timber.log.Timber
 import java.io.IOException
 import java.util.Base64
@@ -150,7 +151,7 @@ internal class DataStore(
 
             // Deserialize from JSON using Kotlinx.serialization
             try {
-                Json.decodeFromString<T>(decryptedValue)
+                SdkJson.decodeFromString<T>(decryptedValue)
             } catch (e: Exception) {
                 Timber.e(e, "Deserialization failed for key ${key.name}: ${e.message}")
                 defaultValue // Return default value on deserialization failure

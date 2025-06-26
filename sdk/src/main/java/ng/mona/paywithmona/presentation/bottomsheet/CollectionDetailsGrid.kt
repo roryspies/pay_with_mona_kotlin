@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +63,7 @@ internal fun CollectionDetailsGrid(
         mutableStateOf(state == CollectionDetailsGridState.AutoExpanded)
     }
 
+    val na = stringResource(R.string.n_a)
     val entries = remember(merchantName, collection, state) {
         val result = buildList {
             add(Triple(R.drawable.ic_person, "Debitor", merchantName))
@@ -72,14 +74,17 @@ internal fun CollectionDetailsGrid(
                     if (isScheduled) formatDate(collection.expiryDate) else collection.schedule?.frequency?.capitalize(
                         true
                     )
-                        ?: "-"
+                        ?: na
                 )
             )
             add(
                 Triple(
                     R.drawable.ic_money,
                     if (isScheduled) "Total debit limit" else "Amount",
-                    collection.maxAmountInKobo?.toIntOrNull()?.format() ?: "-"
+                    when (isScheduled) {
+                        true -> collection.maxAmountInKobo
+                        false -> collection.schedule?.amountInKobo
+                    }?.toIntOrNull()?.format() ?: na
                 )
             )
             add(
@@ -87,7 +92,7 @@ internal fun CollectionDetailsGrid(
                     if (isScheduled) R.drawable.ic_money else R.drawable.ic_calendar,
                     if (isScheduled) "Monthly debit limit" else "Start",
                     when (isScheduled) {
-                        true -> collection.monthlyLimit?.toIntOrNull()?.format() ?: "-"
+                        true -> collection.monthlyLimit?.toIntOrNull()?.format() ?: na
                         false -> formatDate(collection.startDate)
                     }
                 )

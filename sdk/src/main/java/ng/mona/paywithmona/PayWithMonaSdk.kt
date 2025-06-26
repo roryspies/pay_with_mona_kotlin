@@ -53,8 +53,8 @@ object PayWithMonaSdk {
         )
     }
 
-    suspend fun consentCollection(collection: Collection, activity: FragmentActivity): Collection? {
-        return instance.consentCollection(collection, activity)
+    suspend fun consentCollection(id: String, activity: FragmentActivity): Collection? {
+        return instance.consentCollection(id, activity)
     }
 
     suspend fun validatePii() {
