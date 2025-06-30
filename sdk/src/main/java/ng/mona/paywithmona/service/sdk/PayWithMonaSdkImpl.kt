@@ -28,6 +28,7 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import ng.mona.paywithmona.BuildConfig
 import ng.mona.paywithmona.data.local.SdkStorage
 import ng.mona.paywithmona.data.model.Checkout
 import ng.mona.paywithmona.data.model.Collection
@@ -128,7 +129,7 @@ internal class PayWithMonaSdkImpl(merchantKey: String, context: Context) {
 
     init {
         scope.launch {
-            if (Timber.forest().isEmpty()) {
+            if (BuildConfig.ENABLE_LOGGING && Timber.forest().isEmpty()) {
                 Timber.plant(Timber.DebugTree())
             }
 

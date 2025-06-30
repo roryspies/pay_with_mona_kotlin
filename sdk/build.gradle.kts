@@ -19,6 +19,26 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+    flavorDimensions += "environment"
+
+    productFlavors {
+        create("dev") {
+            dimension = "environment"
+            buildConfigField("String", "SUB_DOMAIN", "\"development\"")
+            buildConfigField("boolean", "ENABLE_LOGGING", "true")
+        }
+        create("staging") {
+            dimension = "environment"
+            buildConfigField("String", "SUB_DOMAIN", "\"staging\"")
+            buildConfigField("boolean", "ENABLE_LOGGING", "true")
+        }
+        create("production") {
+            dimension = "environment"
+            buildConfigField("String", "SUB_DOMAIN", "\"production\"")
+            buildConfigField("boolean", "ENABLE_LOGGING", "false")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -28,18 +48,33 @@ android {
             )
         }
     }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
         }
     }
+
     publishing {
-        singleVariant("release") {
+        singleVariant("devRelease") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+        singleVariant("stagingRelease") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+        singleVariant("productionRelease") {
             withSourcesJar()
             withJavadocJar()
         }
@@ -105,13 +140,31 @@ dependencies {
 
 publishing {
     publications {
-        create("release", MavenPublication::class) {
+        create<MavenPublication>("devRelease") {
+            groupId = "ng.mona"
+            artifactId = "paywithmona-dev"
+            version = "1.0.0"
+
+            afterEvaluate {
+                from(components["devRelease"])
+            }
+        }
+        create<MavenPublication>("stagingRelease") {
+            groupId = "ng.mona"
+            artifactId = "paywithmona-staging"
+            version = "1.0.0"
+
+            afterEvaluate {
+                from(components["stagingRelease"])
+            }
+        }
+        create<MavenPublication>("productionRelease") {
             groupId = "ng.mona"
             artifactId = "paywithmona"
             version = "1.0.0"
 
             afterEvaluate {
-                from(components["release"])
+                from(components["productionRelease"])
             }
         }
     }
